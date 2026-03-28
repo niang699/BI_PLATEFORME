@@ -1,0 +1,929 @@
+
+## 🧩 PROMPT MASTERCLASS — Observatoire des Indicateurs SEN'EAU · Design Ultra-Sophistiqué
+
+---
+
+### 🎯 MISSION
+
+Tu vas créer le **module le plus visuellement impressionnant** du portail SEN'EAU BI Platform : l'**Observatoire des Indicateurs**. Ce n'est pas un tableau de données — c'est une **expérience de navigation premium** digne d'un outil enterprise de niveau Tableau ou Power BI. Chaque pixel compte.
+
+**Données** : générées en Python à partir de la vraie structure du fichier SEN'EAU — aucune connexion base de données requise.
+
+---
+
+### 📦 DONNÉES DE TEST — `backend/indicators_data.py`
+
+Génère des données réalistes basées **exactement** sur cette structure réelle SEN'EAU :
+
+```python
+# ══════════════════════════════════════════════════════════
+# STRUCTURE RÉELLE DU FICHIER INDICATEURS SEN'EAU
+# ══════════════════════════════════════════════════════════
+
+SERVICES = {
+    "SG":    {"label": "Secrétariat Général",              "couleur": "#1F3B72"},
+    "DPD":   {"label": "Direction Production Distribution", "couleur": "#0891B2"},
+    "DTO":   {"label": "Direction Travaux et Ouvrages",     "couleur": "#0D9488"},
+    "DTX":   {"label": "Direction Technique",               "couleur": "#7C3AED"},
+    "DCL":   {"label": "Direction Clientèle",               "couleur": "#96C11E"},
+    "DRH":   {"label": "Direction Ressources Humaines",     "couleur": "#DB2777"},
+    "DSI":   {"label": "Direction Systèmes Information",    "couleur": "#2563EB"},
+    "DAL":   {"label": "Direction Achats et Logistique",    "couleur": "#D97706"},
+    "DFC":   {"label": "Direction Finances et Comptabilité","couleur": "#DC2626"},
+    "DQSE":  {"label": "Dir. Qualité Sécurité Environnement","couleur":"#059669"},
+    "DCRP":  {"label": "Dir. Communication et Relations Publiques","couleur":"#9333EA"},
+    "DLCQE": {"label": "Dir. Laboratoire et Contrôle Qualité","couleur":"#0EA5E9"},
+    "DPP":   {"label": "Direction Planification et Projets","couleur": "#F59E0B"},
+}
+
+GROUPES_PROCESSUS = [
+    {"code": "M01", "nom": "M01 · Gouvernance",                    "type": "Management"},
+    {"code": "M02", "nom": "M02 · Communication",                  "type": "Management"},
+    {"code": "R01", "nom": "R01 · Gestion Relation Clients",       "type": "Réalisation"},
+    {"code": "R02", "nom": "R02 · Relevé, Facturation, Recouvrement","type":"Réalisation"},
+    {"code": "R03", "nom": "R03 · Production d'Eau Potable",       "type": "Réalisation"},
+    {"code": "R04", "nom": "R04 · Maintenance Électromécanique",   "type": "Réalisation"},
+    {"code": "R05", "nom": "R05 · Transport et Distribution",      "type": "Réalisation"},
+    {"code": "R06", "nom": "R06 · Réalisation de Travaux",         "type": "Réalisation"},
+    {"code": "R07", "nom": "R07 · Renouvellement du Réseau",       "type": "Réalisation"},
+    {"code": "R08", "nom": "R08 · Études et Intégration Projets",  "type": "Réalisation"},
+    {"code": "S01", "nom": "S01 · Management Capital Humain",      "type": "Support"},
+    {"code": "S02", "nom": "S02 · Gestion Système d'Information",  "type": "Support"},
+    {"code": "S03", "nom": "S03 · Achats et Gestion des Stocks",   "type": "Support"},
+    {"code": "S04", "nom": "S04 · Gestion Financière et Comptable","type": "Support"},
+    {"code": "S06", "nom": "S06 · Gestion Équipements de Mesure",  "type": "Support"},
+]
+
+TYPES_INDICATEUR = ["Qualité", "Sécurité", "Environnement", "Financier", "Performance"]
+SOURCES_REPORTING = ["AarSENEAU", "Excel", "HR ACCESS", "DWH PostgreSQL", "Gordon API", "DIGI"]
+
+# Indicateurs réels par service (extraits du fichier)
+INDICATEURS_PAR_SERVICE = {
+    "DCL":   ["Facturation par GF (m3)", "Taux d'annulation",
+              "Taux de refacturation", "Taux de recouvrement",
+              "Taux de réclamations traitées dans les délais",
+              "Nombre de nouveaux branchements",
+              "Taux de satisfaction client", "Encaissement mensuel",
+              "Impayés cumulés", "Taux de coupures pour impayés",
+              "Délai moyen de traitement des réclamations",
+              "Taux de résiliation"],
+    "DPD":   ["Rendement de traitement", "Rendement de Transport",
+              "Indice linéaire de perte", "Volume produit",
+              "Volume distribué", "Taux de conformité eau produite",
+              "Nombre de ruptures de production", "Continuité de service",
+              "Consommation énergie / m3 produit"],
+    "DRH":   ["Taux d'exactitude de la paie",
+              "Taux de respect du planning de paiement des salaires",
+              "Heure supplémentaire ≤ 2,5% masse salariale",
+              "Taux de formation réalisée", "Taux de féminisation",
+              "Taux de turn-over", "Taux d'absentéisme",
+              "Délai moyen de recrutement"],
+    "DSI":   ["Taux de disponibilité global du système informatique",
+              "Taux de disponibilité des applications en production",
+              "Taux de demandes traitées dans les délais",
+              "Taux de couverture antivirus", "Délai moyen de résolution incidents",
+              "Taux de sauvegarde réussie", "Taux de déploiement projets SI"],
+    "DFC":   ["Taux de conformité des comptes",
+              "Taux de respect des dates d'arrêté des comptes",
+              "Taux de paiement des factures fournisseurs dans les délais",
+              "Taux de recouvrement global", "Délai de clôture comptable",
+              "Taux d'exécution budgétaire"],
+    "DQSE":  ["Taux d'atteintes valeurs cible",
+              "Taux de réalisation audit interne",
+              "Taux de fermeture des NC et écart d'audit",
+              "Taux d'avancement du PMQSE", "Nb d'accidents de travail",
+              "Taux de fréquence accidents"],
+    "DTO":   ["Taux de mètre BO dans les délais",
+              "Transmission de l'inventaire à jour à SONES",
+              "Transmission du programme à SONES",
+              "Taux de réalisation du programme de travaux",
+              "Délai moyen de réalisation branchements"],
+    "DTX":   ["Délai de réalisation BO", "Délai de réalisation des BS",
+              "Délai de réalisation des poses compteurs",
+              "Taux de conformité des travaux réalisés",
+              "Taux de réalisation du plan de renouvellement"],
+    "DAL":   ["Délai de traitement des DA", "Délai traitement BC",
+              "Taux de transformation des DA en BC",
+              "Taux de conformité des livraisons",
+              "Rotation des stocks"],
+    "DLCQE": ["Taux de conformité physico-chimique",
+              "Taux de réalisation physico-chimique",
+              "Taux de conformité bactériologique",
+              "Délai de rendu des résultats d'analyse",
+              "Taux de satisfaction des demandes d'analyse"],
+    "DPP":   ["Taux de levée des anomalies",
+              "Taux de conformité des ouvrages",
+              "Taux de traitement des études dans les délais",
+              "Taux de réalisation du plan d'investissement"],
+    "DCRP":  ["Communication dans les délais",
+              "Niveau de satisfaction media", "Rappel des échéances de paiement"],
+    "SG":    ["Taux de féminisation global", "Conformité réglementaire",
+              "Taux de réponse aux courriers dans les délais"],
+}
+```
+
+**Fonction `generate_indicators_data()`** :
+
+Pour chaque indicateur, génère aléatoirement et de façon cohérente :
+
+```python
+{
+    "id":                  # int unique
+    "indicateur":          # str (nom réel ci-dessus)
+    "service":             # str (code service)
+    "service_label":       # str (label complet)
+    "service_couleur":     # str (couleur hex)
+    "groupe_processus":    # str (code groupe)
+    "groupe_nom":          # str (nom complet)
+    "groupe_type":         # str (Management / Réalisation / Support)
+    "type_indicateur":     # str (Qualité / Sécurité / Environnement / Financier / Performance)
+    "calcule":             # bool (70% True)
+    "frequence_maj":       # str (Quotidien 10% / Hebdomadaire 20% / Mensuel 50% / Trimestriel 20%)
+    "priorite":            # int (1 ou 2, 40% prio 1)
+    "source_reporting":    # str
+    "pilote_processus":    # str (ex: "Directeur DCL")
+    "responsable_collecte":# str
+    "mode_calcul":         # str (formule générée selon le nom)
+    "objectif_cible":      # str (ex: "> 95%", "< 5 jours", "100%")
+    "valeur_actuelle":     # float (valeur simulée)
+    "valeur_precedente":   # float (mois précédent)
+    "atteint_cible":       # bool
+    "tendance":            # str (hausse / baisse / stable)
+    "tags":                # list[str] (ex: ["KPI stratégique", "Tableau de bord CODIR"])
+}
+```
+
+**Total : 239 indicateurs** répartis proportionnellement entre les 13 services.
+
+---
+
+### 🎨 SYSTÈME DE DESIGN — MASTERCLASS LEVEL
+
+#### Tokens de design CSS obligatoires
+
+```css
+/* ════════════════════════════════════════════════════════
+   DESIGN SYSTEM — SEN'EAU BI PLATFORM · OBSERVATOIRE
+   Niveau : Enterprise Premium
+   ════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Couleurs core SEN'EAU */
+  --seneau-blue:       #1F3B72;
+  --seneau-green:      #96C11E;
+  --seneau-teal:       #00C9A7;
+
+  /* Surfaces */
+  --surface-0:         #F0F4FF;   /* fond page */
+  --surface-1:         #FFFFFF;   /* carte */
+  --surface-2:         #F8FAFF;   /* carte hover */
+  --surface-glass:     rgba(255,255,255,0.72);
+
+  /* Texte */
+  --text-primary:      #0F1B35;
+  --text-secondary:    #4B5E7E;
+  --text-muted:        #8FA3C7;
+
+  /* Sémantique */
+  --success:    #10B981;
+  --warning:    #F59E0B;
+  --danger:     #EF4444;
+  --info:       #3B82F6;
+
+  /* Ombres multicouches */
+  --shadow-xs:  0 1px 2px rgba(15,27,53,0.04);
+  --shadow-sm:  0 2px 8px rgba(15,27,53,0.06), 0 1px 2px rgba(15,27,53,0.04);
+  --shadow-md:  0 4px 16px rgba(15,27,53,0.08), 0 2px 6px rgba(15,27,53,0.05);
+  --shadow-lg:  0 8px 32px rgba(15,27,53,0.10), 0 4px 12px rgba(15,27,53,0.06);
+  --shadow-xl:  0 20px 60px rgba(15,27,53,0.12), 0 8px 24px rgba(15,27,53,0.08);
+  --shadow-glow-blue:  0 0 0 1px rgba(31,59,114,0.08), 0 4px 24px rgba(31,59,114,0.16);
+  --shadow-glow-green: 0 0 0 1px rgba(150,193,30,0.12), 0 4px 24px rgba(150,193,30,0.20);
+
+  /* Rayons */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+}
+
+/* ── Fond page dégradé subtil ──────────────────────────── */
+.page-indicators {
+  background: radial-gradient(ellipse 120% 80% at 10% -20%,
+    rgba(31,59,114,0.06) 0%, transparent 60%),
+  radial-gradient(ellipse 80% 60% at 90% 110%,
+    rgba(150,193,30,0.05) 0%, transparent 60%),
+  var(--surface-0);
+  min-height: 100vh;
+}
+```
+
+---
+
+#### KPI Cards — Glassmorphism Premium
+
+```css
+.obs-kpi-card {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.6);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg),
+              inset 0 1px 0 rgba(255,255,255,0.8);
+  padding: 28px 24px;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--duration-base) var(--ease-spring),
+              box-shadow var(--duration-base) var(--ease-smooth);
+}
+
+.obs-kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--gradient-accent);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.obs-kpi-card::before {
+  content: '';
+  position: absolute;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-color) 0%, transparent 70%);
+  top: -60px; right: -40px;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.obs-kpi-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: var(--shadow-xl), var(--shadow-glow-blue),
+              inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+/* Nombre KPI */
+.obs-kpi-number {
+  font-family: 'Inter', sans-serif;
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--seneau-blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Icône KPI */
+.obs-kpi-icon {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  position: relative;
+}
+.obs-kpi-icon::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--icon-from), var(--icon-to));
+  opacity: 0.15;
+}
+```
+
+#### Indicator Cards — Design Premium
+
+```css
+.ind-card {
+  background: var(--surface-1);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(15,27,53,0.06);
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--duration-base) var(--ease-smooth);
+  position: relative;
+}
+
+/* Bande colorée top selon le service */
+.ind-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: var(--service-color);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.ind-card:hover {
+  border-color: rgba(31,59,114,0.14);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+
+.ind-card:hover .ind-card-reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Corps de la carte */
+.ind-card-body {
+  padding: 20px;
+}
+
+/* Titre indicateur */
+.ind-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 12px 0 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Badge service */
+.badge-service {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: color-mix(in srgb, var(--service-color) 12%, white);
+  color: var(--service-color);
+  border: 1px solid color-mix(in srgb, var(--service-color) 20%, transparent);
+}
+
+/* Badge type indicateur */
+.badge-type {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.badge-type.qualite     { background: #EEF9F5; color: #059669; }
+.badge-type.securite    { background: #FFF7ED; color: #D97706; }
+.badge-type.financier   { background: #EFF6FF; color: #2563EB; }
+.badge-type.environnement{ background: #F0FDF4; color: #16A34A; }
+.badge-type.performance { background: #F5F3FF; color: #7C3AED; }
+
+/* Indicateurs métriques sur la carte */
+.ind-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 20px 16px;
+  background: var(--surface-2);
+  border-top: 1px solid rgba(15,27,53,0.04);
+}
+
+.ind-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.ind-meta-label { color: var(--text-muted); }
+.ind-meta-value { color: var(--text-secondary); font-weight: 500; }
+
+/* Puce calculé */
+.calc-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+.calc-dot.yes { background: var(--success); box-shadow: 0 0 0 2px rgba(16,185,129,0.2); }
+.calc-dot.no  { background: var(--text-muted); }
+
+/* Bouton détail (révélé au hover) */
+.ind-card-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: linear-gradient(135deg, var(--seneau-blue), color-mix(in srgb, var(--seneau-blue) 70%, var(--seneau-teal)));
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+/* Priorité badge */
+.prio-badge {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.prio-badge.p1 { background: rgba(239,68,68,0.1); color: #EF4444; }
+.prio-badge.p2 { background: rgba(245,158,11,0.1); color: #F59E0B; }
+```
+
+#### Drawer / Modal — Side Panel Premium
+
+```css
+/* Panel latéral de détail */
+.ind-detail-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 480px;
+  background: var(--surface-1);
+  box-shadow: -20px 0 60px rgba(15,27,53,0.14);
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.3s var(--ease-spring);
+  overflow: hidden;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.ind-detail-header {
+  padding: 24px;
+  background: linear-gradient(135deg, var(--seneau-blue) 0%, #2B50A0 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.ind-detail-header::before {
+  content: '';
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  top: -80px; right: -60px;
+}
+
+.ind-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* Section dans le panel */
+.detail-section {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(15,27,53,0.05);
+}
+
+.detail-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Formule de calcul */
+.formula-box {
+  background: var(--text-primary);
+  color: #96C11E;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  position: relative;
+  overflow: hidden;
+}
+.formula-box::before {
+  content: 'MODE DE CALCUL';
+  position: absolute;
+  top: 8px; right: 12px;
+  font-size: 9px;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 1px;
+  color: rgba(150,193,30,0.4);
+}
+
+/* Jauge valeur actuelle */
+.target-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(15,27,53,0.06);
+}
+.target-bar-track {
+  height: 8px;
+  background: rgba(15,27,53,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.target-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s var(--ease-smooth);
+}
+
+/* Overlay sombre */
+.panel-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,27,53,0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1049;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+```
+
+#### Navigation Pills — Onglets internes
+
+```css
+.obs-nav {
+  display: inline-flex;
+  background: rgba(15,27,53,0.05);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.obs-nav-pill {
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+  display: flex; align-items: center; gap: 7px;
+  border: none; background: transparent;
+  white-space: nowrap;
+}
+
+.obs-nav-pill.active {
+  background: white;
+  color: var(--seneau-blue);
+  box-shadow: var(--shadow-md);
+}
+
+.obs-nav-pill:hover:not(.active) {
+  background: rgba(255,255,255,0.6);
+  color: var(--text-primary);
+}
+
+/* Compteur dans le pill */
+.pill-count {
+  background: var(--seneau-blue);
+  color: white;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+.obs-nav-pill:not(.active) .pill-count {
+  background: rgba(15,27,53,0.12);
+  color: var(--text-secondary);
+}
+```
+
+#### Filtres Bar — Premium
+
+```css
+.obs-filters-bar {
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Search input */
+.obs-search {
+  flex: 1; min-width: 240px;
+  background: white;
+  border: 1.5px solid rgba(15,27,53,0.1);
+  border-radius: 10px;
+  padding: 9px 14px 9px 38px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  transition: border var(--duration-fast), box-shadow var(--duration-fast);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238FA3C7' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+.obs-search:focus {
+  outline: none;
+  border-color: var(--seneau-blue);
+  box-shadow: 0 0 0 3px rgba(31,59,114,0.10);
+}
+
+/* Bouton reset */
+.obs-reset-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(15,27,53,0.10);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: all var(--duration-fast);
+}
+.obs-reset-btn:hover {
+  background: rgba(239,68,68,0.06);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+```
+
+---
+
+### 🖥️ LAYOUT DE LA PAGE
+
+#### Header de la page
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                               │
+│  🔭 Observatoire des Indicateurs SEN'EAU                                    │
+│  239 indicateurs · 13 services · 15 processus                               │
+│                                                                    [⬇ Export]│
+│                                                                               │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐                        │
+│  │   239   │  │   76    │  │   13    │  │   15    │   ← KPI glassmorphism   │
+│  │Indicateurs│ │Calculés │  │Services │  │Processus│                        │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘                        │
+│                                                                               │
+│  [ 🗂️ Explorateur 239 ] [ 📊 Analyses ] [ 📋 Liste ] [ 🔄 Par Processus ]  │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### VUE 1 — Explorateur *(vue par défaut)*
+
+```
+FILTRES ────────────────────────────────────────────────────────────────────
+[🔍 Rechercher un indicateur...]  [Service ▼] [Processus ▼] [Type ▼]
+[Priorité: ● P1  ○ P2  ○ Tous] [Calculé: ● Tous  ○ Oui  ○ Non]  [Réinitialiser]
+
+RÉSULTATS — 239 indicateurs                        [⊞ 3 col]  [☰ 2 col]
+─────────────────────────────────────────────────────────────────────────────
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│■■■ (bande bleue) │ │■■■ (bande verte) │ │■■■ (bande teal)  │
+│                  │ │                  │ │                  │
+│[DCL] [Financier] │ │[DPD] [Performance]│ │[DSI] [Qualité]   │
+│  P1              │ │  P1              │ │  P2              │
+│                  │ │                  │ │                  │
+│Taux de           │ │Rendement de      │ │Taux de           │
+│recouvrement      │ │traitement        │ │disponibilité     │
+│                  │ │                  │ │du système        │
+│──────────────────│ │──────────────────│ │──────────────────│
+│● Calculé  Mensuel│ │● Calculé  Quotid.│ │● Calculé  Hebdo. │
+│R02 · Facturation │ │R03 · Production  │ │S02 · SI          │
+│──────────────────│ │──────────────────│ │──────────────────│
+│  [ Voir détails ]│ │  [ Voir détails ]│ │  [ Voir détails ]│
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+```
+
+**Pagination** : 24 cartes par page — boutons numérotés `< 1 2 3 ... 10 >`
+
+---
+
+#### VUE 2 — Analyses *(graphiques)*
+
+```
+LINE 1 (col-5 + col-7)
+┌────────────────────────────────────┐  ┌───────────────────────────────────────┐
+│  📊 Indicateurs par Service        │  │  🌡️ Carte thermique Service × Processus │
+│                                    │  │                                         │
+│  DCL  ████████████████████  47     │  │       DCL DPD DTO DTX DFC DRH DSI ...  │
+│  DPD  ████████████████      38     │  │  R02 │  8  │  2 │  3 │  │  │  │  │    │
+│  DRH  ████████████          28     │  │  R03 │  │  │ 12 │  │  │  │  │  │  │    │
+│  DSI  ██████████            22     │  │  S01 │  │  │  │  │  │  │ 15│  │  │    │
+│  ...                               │  │  ...                                    │
+│  (Bar chart horizontal)            │  │  (Heatmap Plotly go.Heatmap)           │
+└────────────────────────────────────┘  └───────────────────────────────────────┘
+
+LINE 2 (col-4 + col-4 + col-4)
+┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
+│  Type indicateur  │ │  Fréquence MAJ    │ │  Calculé vs Non   │
+│  (Donut Plotly)   │ │  (Bar chart)      │ │  (Gauge demi-lune)│
+│  Qualité 42%      │ │  Mensuel   48%    │ │     76 / 239       │
+│  Financier 28%    │ │  Trimestr. 22%    │ │       32%          │
+│  Performance 18%  │ │  Hebdo.    20%    │ │  ■■■■■■░░░░░░░    │
+│  Sécurité 7%      │ │  Quotidien 10%    │ │                   │
+│  Environ. 5%      │ │                   │ │                   │
+└───────────────────┘ └───────────────────┘ └───────────────────┘
+```
+
+**Style Plotly** pour tous les graphiques :
+```python
+PLOTLY_THEME = {
+    "plot_bgcolor":  "transparent",
+    "paper_bgcolor": "transparent",
+    "font":          {"family": "Inter, sans-serif", "color": "#4B5E7E"},
+    "margin":        {"t": 20, "b": 20, "l": 20, "r": 20},
+    "colorway":      ["#1F3B72","#96C11E","#00C9A7","#F59E0B",
+                      "#EF4444","#8B5CF6","#EC4899","#0891B2"],
+}
+```
+
+---
+
+#### VUE 3 — Liste tabulaire *(DataTable premium)*
+
+```python
+# Style DataTable Dash
+style_table = {
+    "overflowX": "auto",
+    "borderRadius": "14px",
+    "border": "1px solid rgba(15,27,53,0.06)",
+    "boxShadow": "var(--shadow-md)",
+}
+style_header = {
+    "backgroundColor": "#0F1B35",
+    "color": "white",
+    "fontFamily": "Inter, sans-serif",
+    "fontWeight": "600",
+    "fontSize": "12px",
+    "letterSpacing": "0.5px",
+    "textTransform": "uppercase",
+    "border": "none",
+    "padding": "14px 16px",
+}
+style_cell = {
+    "fontFamily": "Inter, sans-serif",
+    "fontSize": "13px",
+    "color": "#0F1B35",
+    "padding": "12px 16px",
+    "border": "none",
+    "borderBottom": "1px solid rgba(15,27,53,0.05)",
+}
+style_data_conditional = [
+    {"if": {"row_index": "odd"}, "backgroundColor": "#F8FAFF"},
+]
+```
+
+**Colonnes** :
+- `#` · `Indicateur` (tooltip mode calcul) · `Service` (badge coloré HTML) · `Groupe Processus` · `Type` (badge) · `Priorité` (emoji ⭐) · `Calculé` (✅/❌) · `Fréquence` · `Cible`
+
+**Actions** :
+```
+[ ⬇️ Export CSV ] [ ⬇️ Export Excel ] [ 🖨️ Imprimer ]   Afficher : [25 ▼] / page
+```
+
+---
+
+#### VUE 4 — Par Processus *(accordéon sophistiqué)*
+
+```python
+# Accordéon groupé par type de processus
+# Section header : Management · Réalisation · Support
+
+SECTION_STYLE = {
+    "Management":   {"color": "#7C3AED", "icon": "⚙️"},
+    "Réalisation":  {"color": "#0891B2", "icon": "🔵"},
+    "Support":      {"color": "#96C11E", "icon": "🟢"},
+}
+```
+
+Structure HTML de chaque accordéon item :
+
+```
+▼ ⚙️ MANAGEMENT                                      [2 processus · 28 indicateurs]
+│
+├── ▼ M01 · Gouvernance                              [12 indicateurs · DQSE]
+│   ├── Progress bar : Calculés 8/12 ████████░░░░
+│   ├── Pilote : Directrice QSEDD
+│   │
+│   ├── ✅ Taux d'atteintes valeurs cible   [DCL] [Qualité] [Mensuel] [⭐P1]
+│   ├── ✅ Taux de réalisation audit         [DQSE] [Qualité] [Trimestriel]
+│   └── ✅ Taux de fermeture NC/écarts       [DQSE] [Qualité] [Mensuel]
+│
+└── ▼ M02 · Communication                            [8 indicateurs · DCRP]
+    └── ...
+
+▼ 🔵 RÉALISATION                                     [8 processus · 142 indicateurs]
+│
+├── ▼ R01 · Gestion Relation Clients                 [22 indicateurs · DCL]
+│   └── ...
+```
+
+---
+
+#### PANEL DÉTAIL *(slide-in depuis la droite)*
+
+```
+╔══════════════════════════════════════════════════════╗
+║  [×]                            [← Préc.]  [Suiv. →] ║
+╠══════════════════════════════════════════════════════╣
+║  [DCL]  [Financier]  [⭐ Priorité 1]                 ║
+║                                                       ║
+║  Taux de recouvrement                                ║
+║                                                       ║
+║  Service : Direction Clientèle (DCL)                 ║
+║  Processus : R02 · Relevé, Facturation, Recouvrement ║
+╠══════════════════════════════════════════════════════╣
+║  📈 VALEUR ACTUELLE                                  ║
+║                                                       ║
+║  84.3%     ↑ +2.1% vs mois précédent                ║
+║  ████████████████░░░░  Cible : > 85%                 ║
+║  ⚠️ Légèrement sous la cible                         ║
+╠══════════════════════════════════════════════════════╣
+║  🧮 MODE DE CALCUL                                   ║
+║  ┌─────────────────────────────────────────────┐    ║
+║  │  Encaissements / CA × 100                   │    ║
+║  └─────────────────────────────────────────────┘    ║
+╠══════════════════════════════════════════════════════╣
+║  🎯 OBJECTIF / CIBLE     ║  📅 FRÉQUENCE            ║
+║  > 85%                    ║  Mensuelle               ║
+╠══════════════════════════════════════════════════════╣
+║  👤 PILOTAGE                                         ║
+║  Pilote    : Directeur DCL                           ║
+║  Collecte  : Chef Division Recouvrement              ║
+║  Source    : AarSENEAU / DWH PostgreSQL              ║
+╠══════════════════════════════════════════════════════╣
+║  🏷️ TAGS                                             ║
+║  [KPI Stratégique] [CODIR] [Score Client 360°]      ║
+╚══════════════════════════════════════════════════════╝
+```
+
+---
+
+### ⚙️ ARCHITECTURE FICHIERS
+
+```
+facturation_dashboard/
+├── backend/
+│   └── indicators_data.py          ← generate_indicators_data()
+│                                      retourne df prêt à l'emploi
+├── frontend/
+│   ├── pages/
+│   │   └── page_indicateurs.py     ← layout 4 vues + panel détail
+│   └── callbacks/
+│       └── callbacks_indicateurs.py ← filtres + panel + export
+├── assets/
+│   └── style.css                   ← tout le CSS ci-dessus (section obs-*)
+```
+
+---
+
+### ✅ CONTRAINTES STRICTES
+
+| Contrainte | Valeur |
+|---|---|
+| Données | Générées en Python — aucune BDD |
+| Police | Inter + JetBrains Mono (formules) |
+| Animations | CSS uniquement — pas de JS custom |
+| Panel détail | `dbc.Offcanvas` ou `dbc.Modal` full-height |
+| Navigation indicateurs | `dcc.Store(id="selected-indicator-id")` |
+| Filtres synchronisés | `dcc.Store(id="obs-filters")` |
+| Graphiques | Plotly uniquement |
+| Responsive | Bootstrap 12 colonnes — mobile-friendly |
+| Langue | Français intégral |
+| Performance | Callbacks `prevent_initial_call=True` partout |
+| Pas de heatmap | ❌ Remplacée par les 2 bar charts + 3 donuts |
+
+> Génère **`backend/indicators_data.py`**, **`frontend/pages/page_indicateurs.py`** et **`frontend/callbacks/callbacks_indicateurs.py`** complets, exécutables immédiatement, avec des commentaires de code professionnels en français.
+

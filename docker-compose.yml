@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  # ── Base de données ─────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: seneau_db
+    environment:
+      POSTGRES_DB: seneau_bi
+      POSTGRES_USER: seneau
+      POSTGRES_PASSWORD: seneau2025!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seneau -d seneau_bi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend FastAPI ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: seneau_api
+    environment:
+      DATABASE_URL: postgresql://seneau:seneau2025!@postgres:5432/seneau_bi
+      SECRET_KEY: seneau-bi-secret-key-2025-change-in-prod
+      DASH_REPORT_URL: http://host.docker.internal:8050
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ── Frontend Next.js ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: seneau_portal
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_DASH_URL: http://localhost:8050
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+  # ── Reverse Proxy Nginx ──────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: seneau_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:

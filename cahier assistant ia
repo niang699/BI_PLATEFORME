@@ -1,0 +1,765 @@
+---
+
+## 🧩 PROMPT — Hub IA SEN'EAU · Assistant Analytique Intelligent
+
+---
+
+### 🎯 MISSION
+
+Tu vas créer la page **`🤖 Hub IA`** du portail SEN'EAU BI Platform. Ce n'est pas un simple chatbot — c'est un **Assistant Analytique Intelligent** propulsé par Claude (Anthropic), spécialisé sur les données métier de SEN'EAU, avec une interface digne d'un produit enterprise premium.
+
+---
+
+### 🏗️ ARCHITECTURE DE LA PAGE
+
+```
+/hub-ia
+│
+├── HEADER — Présentation de l'assistant
+├── MODES — 3 onglets de conversation spécialisés
+│   ├── 📊 Analyse          → KPIs, indicateurs, performance
+│   ├── 📖 Glossaire        → Définitions métier SEN'EAU
+│   └── 📋 Rapport Narratif → Génération automatique de résumés
+│
+├── ZONE CONVERSATION — Interface chat premium
+│   ├── Historique messages (scroll)
+│   ├── Questions suggérées (chips cliquables)
+│   └── Zone de saisie
+│
+└── SIDEBAR DROITE — Contexte actif
+    ├── KPIs injectés dans le prompt
+    ├── Statut connexion API
+    └── Paramètres de session
+```
+
+---
+
+### 🤖 SYSTEM PROMPTS PAR MODE
+
+```python
+# backend/ai_hub_context.py
+
+SENEAU_BASE_CONTEXT = """
+Tu es l'Assistant Analytique Officiel de SEN'EAU
+(Société Nationale des Eaux du Sénégal).
+
+IDENTITÉ :
+- Tu t'appelles jambar (JAMBAR signifie "Héros" en Wolof — tu es l'assistant
+analytique de référence de SEN'EAU, fier de ses racines
+sénégalaises et au service de la performance de l'eau.)
+- Tu travailles exclusivement sur les données SEN'EAU
+- Tu réponds en français, ton professionnel et accessible
+- Tes réponses sont concises : maximum 120 mots sauf demande explicite
+- Tu utilises des emojis sobres pour structurer (📊 ✅ ⚠️ 💡 📈 📉)
+
+CONNAISSANCE MÉTIER SEN'EAU :
+════════════════════════════════
+SEUILS DE PERFORMANCE :
+• Taux de recouvrement cible    : > 85%
+• Taux de disponibilité SI      : > 99%
+• Délai traitement réclamations : < 5 jours
+• Rendement réseau              : > 80%
+• Taux de conformité eau        : 100%
+
+DIRECTIONS (13) :
+• DCL  → Direction Clientèle
+• DPD  → Direction Production et Distribution
+• DTO  → Direction Travaux et Ouvrages
+• DTX  → Direction Technique
+• DRH  → Direction Ressources Humaines
+• DSI  → Direction Systèmes d'Information
+• DAL  → Direction Achats et Logistique
+• DFC  → Direction Finances et Comptabilité
+• DQSE → Direction Qualité Sécurité Environnement
+• DCRP → Direction Communication et Relations Publiques
+• DLCQE→ Direction Laboratoire et Contrôle Qualité Eau
+• DPP  → Direction Planification et Projets
+• SG   → Secrétariat Général
+
+PROCESSUS MÉTIER (15) :
+• Management   : M01 Gouvernance · M02 Communication
+• Réalisation  : R01 à R08 (Clients · Facturation · Production
+                 · Maintenance · Distribution · Travaux ·
+                 Renouvellement · Études)
+• Support      : S01 RH · S02 SI · S03 Achats · S04 Finance
+                 · S06 Équipements
+
+SEGMENTATION CLIENT 360° :
+• ⭐ Premium      → Paiement régulier · ancienneté > 5 ans
+• ✅ Stable       → Retards < 15 jours · fidèle
+• 👁️ À surveiller → Retards 15-30 jours · finit par payer
+• 🤝 Sensible     → Difficultés réelles · bonne foi
+• 🚨 Critique     → Impayés chroniques · non-réponse
+
+RÈGLE ABSOLUE :
+Si la question est hors périmètre SEN'EAU, réponds :
+"Je suis spécialisé sur les données et processus SEN'EAU.
+Posez-moi une question sur vos KPIs, indicateurs ou
+segments clients,gouvernance"
+"""
+
+def build_analyse_prompt(kpis: dict) -> str:
+    return f"""
+{SENEAU_BASE_CONTEXT}
+
+MODE : ANALYSE DES PERFORMANCES
+════════════════════════════════
+
+DONNÉES EN TEMPS RÉEL (dashboard actuel) :
+──────────────────────────────────────────
+KPIs GLOBAUX :
+• CA total              : {kpis.get('ca', 'N/A')} M FCFA
+• Encaissements         : {kpis.get('encaissement', 'N/A')} M FCFA
+• Impayés               : {kpis.get('impaye', 'N/A')} M FCFA
+• Taux de recouvrement  : {kpis.get('taux', 'N/A')} %
+• Statut vs cible       : {'✅ Atteinte' if float(kpis.get('taux', 0)) >= 85 else '⚠️ Sous la cible'}
+
+CLASSEMENT DT :
+{kpis.get('classement_dt', 'Non disponible')}
+
+SEGMENTS CLIENTS :
+{kpis.get('segments', 'Non disponible')}
+
+TENDANCE (7 derniers jours) :
+{kpis.get('tendance', 'Non disponible')}
+
+Tu peux analyser ces données, identifier des anomalies,
+comparer aux seuils cibles et formuler des recommandations.
+"""
+
+def build_glossaire_prompt() -> str:
+    return f"""
+{SENEAU_BASE_CONTEXT}
+
+MODE : GLOSSAIRE MÉTIER SEN'EAU
+════════════════════════════════
+
+Tu es le référentiel de définitions métier SEN'EAU.
+Tu expliques clairement tout terme lié à :
+• La facturation et le recouvrement de l'eau
+• Les indicateurs de performance (KPIs)
+• Les processus métier SEN'EAU
+• La réglementation sectorielle eau au Sénégal
+• La gouvernance des données
+
+Format de réponse pour chaque définition :
+📌 **[TERME]**
+Définition : ...
+Formule (si applicable) : ...
+Seuil SEN'EAU : ...
+Exemple concret : ...
+"""
+
+def build_rapport_prompt(kpis: dict, periode: str) -> str:
+    return f"""
+{SENEAU_BASE_CONTEXT}
+
+MODE : GÉNÉRATION DE RAPPORT NARRATIF
+════════════════════════════════════════
+
+Génère un résumé exécutif professionnel de la performance
+SEN'EAU pour la période : {periode}
+
+DONNÉES À SYNTHÉTISER :
+{kpis}
+
+FORMAT DU RAPPORT :
+1. 🎯 Synthèse exécutive (2-3 phrases)
+2. 📈 Points positifs (max 3 bullets)
+3. ⚠️ Points de vigilance (max 3 bullets)
+4. 💡 Recommandations prioritaires (max 3 actions)
+5. 📅 Prochaines étapes suggérées
+
+Style : professionnel · factuel · orienté action
+Destinataire : Direction Générale SEN'EAU
+"""
+```
+
+---
+
+### 🎨 DESIGN — Interface Chat Premium
+
+#### Layout principal
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  HEADER                                                               │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  🤖  SENI — Assistant Analytique SEN'EAU        ● En ligne  │   │
+│  │  Propulsé par Claude · Spécialisé données SEN'EAU            │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────┬────────────────────┤
+│  MODES                                          │  CONTEXTE ACTIF   │
+│  ┌────────────────────────────────────────┐    │                    │
+│  │ [📊 Analyse] [📖 Glossaire] [📋 Rapport]│   │  KPIs injectés     │
+│  └────────────────────────────────────────┘    │  ──────────────    │
+│                                                 │  CA : 668M FCFA   │
+│  CONVERSATION                                   │  Taux : 54.7%     │
+│  ┌────────────────────────────────────────┐    │  ⚠️ Sous cible     │
+│  │                                        │    │                    │
+│  │  🤖 Bonjour ! Je suis SENI, votre     │    │  Statut API        │
+│  │  assistant analytique SEN'EAU.         │    │  ──────────────    │
+│  │  Comment puis-je vous aider ?          │    │  ● Claude 3.5      │
+│  │                                        │    │  ✅ Connecté        │
+│  │  ┌─────────────────────────────────┐  │    │                    │
+│  │  │ 📊 Quel est le taux global ?   │  │    │  Session           │
+│  │  │ ⚠️ Quelles DT sont en retard ? │  │    │  ──────────────    │
+│  │  │ 🏆 Top 3 services performance  │  │    │  12 messages       │
+│  │  │ 📋 Génère un rapport CODIR     │  │    │  Mode : Analyse    │
+│  │  └─────────────────────────────────┘  │    │                    │
+│  │              (questions suggérées)     │    │  [🗑️ Nouvelle      │
+│  │                                        │    │    session]        │
+│  │  👤  Quelle DT performe le mieux ?    │    │                    │
+│  │                                        │    │                    │
+│  │  🤖  📊 **Classement DT — Taux de    │    │                    │
+│  │       recouvrement**                  │    │                    │
+│  │       1. 🥇 DT Sud   : 72.1%         │    │                    │
+│  │       2. 🥈 DT Nord  : 54.4%         │    │                    │
+│  │       3. 🥉 DT Est   : 51.9%         │    │                    │
+│  │       ⚠️ Aucune DT n'atteint la      │    │                    │
+│  │       cible de 85%.                   │    │                    │
+│  │                                        │    │                    │
+│  └────────────────────────────────────────┘    │                    │
+│                                                 │                    │
+│  SAISIE                                         │                    │
+│  ┌────────────────────────────────────────┐    │                    │
+│  │ ✍️  Posez votre question...       [↑] │    │                    │
+│  └────────────────────────────────────────┘    │                    │
+└─────────────────────────────────────────────────┴────────────────────┘
+```
+
+---
+
+#### CSS Design System
+
+```css
+/* ══════════════════════════════════════════
+   HUB IA — JAMBAR · SEN'EAU
+   Design Enterprise Premium
+   ══════════════════════════════════════════ */
+
+/* Conteneur principal */
+.hub-ia-page {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  grid-template-rows: auto auto 1fr auto;
+  height: calc(100vh - 80px);
+  gap: 0;
+  background: var(--surface-0);
+}
+
+/* ── HEADER SENI ─────────────────────────── */
+.seni-header {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg,
+    #0D1F4A 0%, #1F3B72 50%, #1a3366 100%);
+  border-radius: 20px;
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 20px 0;
+  box-shadow: 0 8px 32px rgba(15,27,53,0.20);
+  position: relative;
+  overflow: hidden;
+}
+
+.seni-header::before {
+  content: '';
+  position: absolute;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(150,193,30,0.08) 0%, transparent 70%);
+  top: -120px; right: -60px;
+}
+
+.seni-avatar {
+  width: 52px; height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg,
+    rgba(150,193,30,0.2), rgba(0,201,167,0.2));
+  border: 1px solid rgba(150,193,30,0.3);
+  display: flex; align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 0 0 4px rgba(150,193,30,0.10);
+}
+
+.seni-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+  letter-spacing: -0.5px;
+}
+
+.seni-title span {
+  color: #96C11E;
+}
+
+.seni-subtitle {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+}
+
+.seni-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+}
+
+.status-dot-live {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #96C11E;
+  box-shadow: 0 0 0 3px rgba(150,193,30,0.25),
+              0 0 8px rgba(150,193,30,0.5);
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(150,193,30,0.25); }
+  50%       { box-shadow: 0 0 0 6px rgba(150,193,30,0.10); }
+}
+
+/* ── MODE TABS ───────────────────────────── */
+.seni-modes {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px 0;
+}
+
+.seni-mode-btn {
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(31,59,114,0.12);
+  background: white;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4B5E7E;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: all 200ms cubic-bezier(0.4,0,0.2,1);
+}
+
+.seni-mode-btn.active {
+  background: linear-gradient(135deg, #1F3B72, #2B50A0);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(31,59,114,0.25);
+}
+
+.seni-mode-btn:hover:not(.active) {
+  background: #F0F4FF;
+  border-color: rgba(31,59,114,0.20);
+  color: #1F3B72;
+  transform: translateY(-1px);
+}
+
+.mode-icon {
+  font-size: 16px;
+}
+
+/* ── CONVERSATION ZONE ───────────────────── */
+.seni-chat-zone {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-behavior: smooth;
+}
+
+.seni-chat-zone::-webkit-scrollbar {
+  width: 4px;
+}
+.seni-chat-zone::-webkit-scrollbar-track {
+  background: transparent;
+}
+.seni-chat-zone::-webkit-scrollbar-thumb {
+  background: rgba(31,59,114,0.15);
+  border-radius: 999px;
+}
+
+/* Bulle assistant */
+.msg-seni {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-width: 78%;
+  animation: msgAppear 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes msgAppear {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.msg-seni-avatar {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1F3B72, #2B50A0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(31,59,114,0.25);
+}
+
+.msg-seni-bubble {
+  background: white;
+  border: 1px solid rgba(31,59,114,0.08);
+  border-radius: 4px 16px 16px 16px;
+  padding: 14px 18px;
+  font-size: 14px;
+  color: #0F1B35;
+  line-height: 1.6;
+  box-shadow: 0 2px 12px rgba(15,27,53,0.06);
+}
+
+/* Bulle utilisateur */
+.msg-user {
+  align-self: flex-end;
+  max-width: 70%;
+  animation: msgAppear 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.msg-user-bubble {
+  background: linear-gradient(135deg, #1F3B72, #2B50A0);
+  color: white;
+  border-radius: 16px 4px 16px 16px;
+  padding: 12px 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(31,59,114,0.25);
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 14px 18px;
+  background: white;
+  border-radius: 4px 16px 16px 16px;
+  border: 1px solid rgba(31,59,114,0.08);
+  width: fit-content;
+}
+
+.typing-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #1F3B72;
+  animation: typingBounce 1.4s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40%            { transform: scale(1);   opacity: 1;   }
+}
+
+/* Questions suggérées */
+.suggested-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.suggestion-chip {
+  padding: 7px 14px;
+  background: #F0F4FF;
+  border: 1.5px solid rgba(31,59,114,0.12);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1F3B72;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.suggestion-chip:hover {
+  background: #1F3B72;
+  color: white;
+  border-color: #1F3B72;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(31,59,114,0.20);
+}
+
+/* ── INPUT ZONE ──────────────────────────── */
+.seni-input-zone {
+  padding: 16px 20px;
+  background: white;
+  border-top: 1px solid rgba(15,27,53,0.06);
+}
+
+.seni-input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: #F0F4FF;
+  border: 1.5px solid rgba(31,59,114,0.10);
+  border-radius: 16px;
+  padding: 10px 10px 10px 18px;
+  transition: border 200ms, box-shadow 200ms;
+}
+
+.seni-input-wrapper:focus-within {
+  border-color: #1F3B72;
+  box-shadow: 0 0 0 3px rgba(31,59,114,0.08);
+  background: white;
+}
+
+.seni-textarea {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #0F1B35;
+  resize: none;
+  outline: none;
+  max-height: 120px;
+  line-height: 1.5;
+}
+
+.seni-textarea::placeholder {
+  color: #8FA3C7;
+}
+
+.seni-send-btn {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1F3B72, #2B50A0);
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 150ms ease;
+  box-shadow: 0 4px 12px rgba(31,59,114,0.30);
+}
+
+.seni-send-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(31,59,114,0.40);
+}
+
+.seni-send-btn:disabled {
+  opacity: 0.4;
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* ── SIDEBAR CONTEXTE ────────────────────── */
+.seni-sidebar {
+  padding: 20px 16px;
+  border-left: 1px solid rgba(15,27,53,0.06);
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.ctx-section {
+  background: #F8FAFF;
+  border: 1px solid rgba(31,59,114,0.06);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.ctx-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #8FA3C7;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ctx-kpi-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(15,27,53,0.04);
+  font-size: 12px;
+}
+
+.ctx-kpi-label { color: #8FA3C7; }
+.ctx-kpi-value {
+  font-weight: 700;
+  color: #0F1B35;
+  font-variant-numeric: tabular-nums;
+}
+.ctx-kpi-value.alert { color: #EF4444; }
+.ctx-kpi-value.ok    { color: #10B981; }
+
+.new-session-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(239,68,68,0.20);
+  background: rgba(239,68,68,0.04);
+  color: #EF4444;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms;
+  display: flex; align-items: center;
+  justify-content: center; gap: 6px;
+}
+.new-session-btn:hover {
+  background: rgba(239,68,68,0.08);
+  border-color: #EF4444;
+}
+```
+
+---
+
+### ⚙️ CALLBACK PRINCIPAL — `callbacks/callbacks_hub_ia.py`
+
+```python
+import anthropic
+import os
+from dash import Input, Output, State, callback, no_update
+
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+@callback(
+    [Output("seni-messages-store", "data"),
+     Output("seni-chat-display",   "children"),
+     Output("seni-input",          "value"),
+     Output("seni-typing",         "style")],
+    [Input("seni-send-btn",   "n_clicks"),
+     Input("seni-input",      "n_submit")],
+    [State("seni-input",          "value"),
+     State("seni-messages-store", "data"),
+     State("seni-mode-store",     "data"),
+     State("store-filters",       "data"),
+     State("store-kpis",          "data")],
+    prevent_initial_call=True
+)
+def handle_seni_message(n_clicks, n_submit, user_input,
+                         history, mode, filters, kpis):
+    if not user_input or not user_input.strip():
+        return no_update, no_update, no_update, {"display": "none"}
+
+    # 1. Construire le system prompt selon le mode
+    if mode == "analyse":
+        system = build_analyse_prompt(kpis or {})
+    elif mode == "glossaire":
+        system = build_glossaire_prompt()
+    else:
+        system = build_rapport_prompt(kpis or {}, "Mars 2026")
+
+    # 2. Historique (max 10 derniers tours)
+    messages = (history or [])[-10:]
+    messages.append({"role": "user", "content": user_input.strip()})
+
+    # 3. Appel API Claude
+    response = client.messages.create(
+        model="claude-opus-4-5",
+        max_tokens=400,
+        system=system,
+        messages=messages
+    )
+    reply = response.content[0].text
+
+    # 4. Mise à jour historique
+    messages.append({"role": "assistant", "content": reply})
+
+    # 5. Rendu des bulles
+    bubbles = render_chat_bubbles(messages)
+
+    return messages, bubbles, "", {"display": "none"}
+```
+
+---
+
+### 💬 QUESTIONS SUGGÉRÉES PAR MODE
+
+```python
+SUGGESTIONS = {
+    "analyse": [
+        Quel est le taux de recouvrement global ?",
+         Quelles DT sont sous la cible de 85% ?",
+         Classement des DT par performance",
+        " Quelle tendance sur les 7 derniers jours ?",
+        " Combien de clients en segment Critique ?",
+        " Quel est le montant total des impayés ?",
+    ],
+    "glossaire": [
+        "📖 Définition du taux de recouvrement",
+        "📖 Qu'est-ce que le Score Client 360° ?",
+        "📖 Différence entre CA et encaissement",
+        "📖 Qu'est-ce qu'un impayé chronique ?",
+        "📖 Comment calcule-t-on le rendement réseau ?",
+    ],
+    "rapport": [
+        "📋 Rapport exécutif semaine en cours",
+        "📋 Synthèse performance DCL ce mois",
+        "📋 Rapport CODIR — points clés",
+        "📋 Analyse des indicateurs priorité 1",
+    ],
+}
+```
+
+---
+
+### 📦 FICHIERS À CRÉER
+
+```
+facturation_dashboard/
+├── backend/
+│   └── ai_hub_context.py           ← prompts système + build functions
+├── frontend/
+│   ├── pages/
+│   │   └── page_hub_ia.py          ← layout complet 4 zones
+│   └── callbacks/
+│       └── callbacks_hub_ia.py     ← appel API + rendu bulles
+├── assets/
+│   └── style.css                   ← section .hub-ia-* · .seni-* · .msg-*
+└── .env
+    └── ANTHROPIC_API_KEY=sk-ant-...
+```
+
+---
+
+### ✅ CONTRAINTES STRICTES
+
+| Contrainte | Valeur |
+|---|---|
+| Modèle LLM | `claude-opus-4-5` |
+| Max tokens réponse | `400` |
+| Historique conservé | `10 derniers tours` |
+| Hors périmètre | Refus poli automatique |
+| Langue | Français intégral |
+| Streaming | `dcc.Interval` polling ou SSE si possible |
+| Nom assistant | **SENI** (SEN'EAU Intelligence) |
+| Police | Inter · JetBrains Mono pour formules |
+| Animations | CSS uniquement |
+| Responsive | Sidebar masquée sur mobile |
+| Dépendances | `anthropic>=0.25.0` dans `requirements.txt` |
+
+> Génère **`backend/ai_hub_context.py`**, **`frontend/pages/page_hub_ia.py`** et **`frontend/callbacks/callbacks_hub_ia.py`** complets, exécutables immédiatement. L'assistant **SENI** doit être opérationnel dès le premier lancement.
+
+utilise un designe ultra prog et sophistique
+pour la police utilise la charte_graphique
+pour les couleur adapte au couleur du portail ultra simple et sophistique
