@@ -51,3 +51,4 @@ pgdata/
 # Fichiers temporaires / exports
 *.tmp
 *.bak
+rh_tables/
