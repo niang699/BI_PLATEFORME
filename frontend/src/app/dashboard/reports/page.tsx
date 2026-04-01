@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { REPORTS, CATEGORY_META, Category } from '@/lib/mockData'
 import TopBar from '@/components/TopBar'
 import ReportCard from '@/components/ReportCard'
@@ -13,15 +14,31 @@ const CATS: { id: Category | 'all'; label: string; icon?: string; imgSrc?: strin
   { id: 'sig',         label: 'Cartographie', icon: CATEGORY_META['sig']?.icon         },
 ]
 
-export default function ReportsPage() {
-  const [activeTab, setActiveTab] = useState<Category | 'all'>('all')
+function ReportsContent() {
+  const searchParams = useSearchParams()
+  const router       = useRouter()
+
+  const initialCat = (searchParams?.get('category') ?? 'all') as Category | 'all'
+  const [activeTab, setActiveTab] = useState<Category | 'all'>(initialCat)
   const [searchVal, setSearchVal] = useState('')
+
+  /* Sync URL ↔ onglet actif */
+  useEffect(() => {
+    const cat = searchParams?.get('category') ?? 'all'
+    setActiveTab(cat as Category | 'all')
+  }, [searchParams])
+
+  const handleTabChange = (cat: Category | 'all') => {
+    setActiveTab(cat)
+    const url = cat === 'all' ? '/dashboard/reports' : `/dashboard/reports?category=${cat}`
+    router.replace(url, { scroll: false })
+  }
 
   const filtered = REPORTS.filter(r => {
     const matchCat    = activeTab === 'all' || r.category === activeTab
     const matchSearch = !searchVal ||
       r.title.toLowerCase().includes(searchVal.toLowerCase()) ||
-      r.tags.some(t => t.toLowerCase().includes(searchVal.toLowerCase()))
+      (r.tags ?? []).some(t => t.toLowerCase().includes(searchVal.toLowerCase()))
     return matchCat && matchSearch
   })
 
@@ -132,7 +149,7 @@ export default function ReportsPage() {
             {CATS.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => setActiveTab(cat.id)}
+                onClick={() => handleTabChange(cat.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '7px 14px', borderRadius: 10, border: 'none',
@@ -206,5 +223,13 @@ export default function ReportsPage() {
         </p>
       </div>
     </>
+  )
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={<TopBar />}>
+      <ReportsContent />
+    </Suspense>
   )
 }

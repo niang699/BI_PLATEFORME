@@ -1,114 +1,152 @@
 /**
- * Cache serveur TTL — hybride mémoire + fichier disque
+ * Cache serveur — Redis (principal) + Mémoire (fallback)
  *
- * Mémoire  : ultra-rapide, perdu au redémarrage
- * Disque   : persiste entre les redémarrages (JSON dans .cache/)
+ * Ordre de lecture :
+ *   1. Mémoire  (ultra-rapide, process local)
+ *   2. Redis    (partagé, persiste aux redémarrages)
+ *   3. DB       (source de vérité)
  *
- * Ordre de lecture : mémoire → disque → DB
- * Les données sen_ods/sen_dwh sont mises à jour 1x/jour max.
+ * Si Redis n'est pas disponible → fallback silencieux sur la mémoire.
+ * Le serveur continue de fonctionner sans Redis.
  */
-import fs   from 'fs'
-import path from 'path'
+import Redis from 'ioredis'
 
-interface Entry { data: unknown; exp: number }
+/* ═══════════════════════════ CONNEXION REDIS ════════════════════════════════ */
 
-/* ── Mémoire ── */
-const MEM = new Map<string, Entry>()
+let redis: Redis | null = null
 
-/* ── Disque ── */
-const CACHE_DIR = path.join(process.cwd(), '.cache')
-if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true })
-
-function cacheFile(key: string): string {
-  // sanitize key → nom de fichier valide
-  return path.join(CACHE_DIR, key.replace(/[^a-z0-9_:.-]/gi, '_') + '.json')
-}
-
-function readDisk<T>(key: string): T | null {
+function getRedis(): Redis | null {
+  if (redis) return redis
+  const url = process.env.REDIS_URL || 'redis://localhost:6379'
   try {
-    const file = cacheFile(key)
-    if (!fs.existsSync(file)) return null
-    const entry: Entry = JSON.parse(fs.readFileSync(file, 'utf8'))
-    if (Date.now() >= entry.exp) { fs.unlinkSync(file); return null }
-    return entry.data as T
-  } catch { return null }
+    redis = new Redis(url, {
+      maxRetriesPerRequest: 1,
+      connectTimeout:       2000,
+      lazyConnect:          true,
+      enableOfflineQueue:   false,
+    })
+    redis.on('error', () => { /* silencieux — fallback mémoire */ })
+    return redis
+  } catch {
+    return null
+  }
 }
 
-function writeDisk(key: string, entry: Entry): void {
-  try { fs.writeFileSync(cacheFile(key), JSON.stringify(entry)) }
-  catch { /* disque plein ou permission → silencieux */ }
-}
+/* ═══════════════════════════ CACHE MÉMOIRE (fallback) ══════════════════════ */
 
-/* ── TTLs ── */
+interface MemEntry { data: unknown; exp: number }
+const MEM = new Map<string, MemEntry>()
+
+/* ════════════════════════════ TTLs EXPORTÉS ═════════════════════════════════ */
+
+export const TTL_5M  =  5 * 60 * 1000
 export const TTL_1H  = 60 * 60 * 1000
 export const TTL_24H = 24 * 60 * 60 * 1000
 
+/* ════════════════════════════ withCache ═════════════════════════════════════ */
+
 /**
- * Retourne la valeur en cache (mémoire puis disque) si fraîche,
- * sinon exécute `fn`, met en cache le résultat et le retourne.
+ * Retourne la valeur en cache si fraîche, sinon exécute `fn`,
+ * met en cache le résultat et le retourne.
+ *
+ * Ordre : mémoire → Redis → DB (fn)
  */
 export async function withCache<T>(
-  key: string,
-  fn: () => Promise<T>,
-  ttlMs = TTL_1H,
+  key:   string,
+  fn:    () => Promise<T>,
+  ttlMs: number = TTL_1H,
 ): Promise<T> {
-  const now = Date.now()
+  const now    = Date.now()
+  const ttlSec = Math.floor(ttlMs / 1000)
 
-  /* 1. Mémoire */
+  /* ── 1. Mémoire ── */
   const memHit = MEM.get(key)
   if (memHit && now < memHit.exp) return memHit.data as T
 
-  /* 2. Disque */
-  const diskHit = readDisk<T>(key)
-  if (diskHit !== null) {
-    // Repeupler la mémoire depuis le disque
-    const diskEntry = JSON.parse(fs.readFileSync(cacheFile(key), 'utf8')) as Entry
-    MEM.set(key, diskEntry)
-    return diskHit
+  /* ── 2. Redis ── */
+  const r = getRedis()
+  if (r) {
+    try {
+      const raw = await r.get(key)
+      if (raw) {
+        const data = JSON.parse(raw) as T
+        /* Repeupler la mémoire depuis Redis */
+        MEM.set(key, { data, exp: now + ttlMs })
+        return data
+      }
+    } catch { /* Redis indisponible → continue vers DB */ }
   }
 
-  /* 3. Source (DB) */
+  /* ── 3. Source (DB) ── */
   const data = await fn()
-  const entry: Entry = { data, exp: now + ttlMs }
-  MEM.set(key, entry)
-  writeDisk(key, entry)
+
+  /* Stocker en mémoire */
+  MEM.set(key, { data, exp: now + ttlMs })
+
+  /* Stocker dans Redis (si disponible) */
+  if (r) {
+    try {
+      await r.set(key, JSON.stringify(data), 'EX', ttlSec)
+    } catch { /* silencieux */ }
+  }
+
   return data
 }
 
-/** Vide tout le cache (mémoire + fichiers disque) ou par préfixe. */
-export function clearCache(prefix?: string): number {
+/* ════════════════════════════ clearCache ════════════════════════════════════ */
+
+/** Vide le cache mémoire + Redis (tout ou par préfixe). */
+export async function clearCache(prefix?: string): Promise<number> {
   let n = 0
+
   /* Mémoire */
-  if (!prefix) { n = MEM.size; MEM.clear() }
-  else {
-    for (const k of MEM.keys()) if (k.startsWith(prefix)) { MEM.delete(k); n++ }
+  if (!prefix) {
+    n = MEM.size
+    MEM.clear()
+  } else {
+    Array.from(MEM.keys()).forEach(k => {
+      if (k.startsWith(prefix)) { MEM.delete(k); n++ }
+    })
   }
-  /* Disque */
-  try {
-    for (const f of fs.readdirSync(CACHE_DIR)) {
-      if (!prefix || f.startsWith(prefix.replace(/[^a-z0-9_:.-]/gi, '_'))) {
-        fs.unlinkSync(path.join(CACHE_DIR, f)); n++
+
+  /* Redis */
+  const r = getRedis()
+  if (r) {
+    try {
+      const pattern = prefix ? `${prefix}*` : '*'
+      const keys    = await r.keys(pattern)
+      if (keys.length > 0) {
+        await r.del(...keys)
+        n += keys.length
       }
-    }
-  } catch { /* ignore */ }
+    } catch { /* silencieux */ }
+  }
+
   return n
 }
 
-/** Statistiques du cache. */
-export function cacheStats() {
-  const now = Date.now()
-  const entries: { key: string; ttlSec: number; source: 'mem' | 'disk' }[] = []
-  for (const [k, v] of MEM) {
-    if (v.exp > now) entries.push({ key: k, ttlSec: Math.round((v.exp - now) / 1000), source: 'mem' })
+/* ════════════════════════════ cacheStats ════════════════════════════════════ */
+
+/** Statistiques du cache (mémoire + Redis). */
+export async function cacheStats() {
+  const now     = Date.now()
+  const memKeys = Array.from(MEM.entries())
+    .filter(([, v]) => v.exp > now)
+    .map(([k, v]) => ({ key: k, ttlSec: Math.round((v.exp - now) / 1000), source: 'mem' as const }))
+
+  let redisKeys: { key: string; ttlSec: number; source: 'redis' }[] = []
+  const r = getRedis()
+  if (r) {
+    try {
+      const keys = await r.keys('*')
+      const ttls = await Promise.all(keys.map(k => r.ttl(k)))
+      redisKeys  = keys.map((k, i) => ({ key: k, ttlSec: ttls[i], source: 'redis' as const }))
+    } catch { /* silencieux */ }
   }
-  try {
-    for (const f of fs.readdirSync(CACHE_DIR)) {
-      const raw = fs.readFileSync(path.join(CACHE_DIR, f), 'utf8')
-      const e: Entry = JSON.parse(raw)
-      const key = f.replace('.json', '')
-      if (e.exp > now && !entries.find(x => x.key.replace(/[^a-z0-9_:.-]/gi, '_') === key))
-        entries.push({ key, ttlSec: Math.round((e.exp - now) / 1000), source: 'disk' })
-    }
-  } catch { /* ignore */ }
-  return { size: entries.length, entries }
+
+  return {
+    size:      memKeys.length + redisKeys.length,
+    redis_ok:  r !== null,
+    entries:   [...memKeys, ...redisKeys],
+  }
 }

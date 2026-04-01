@@ -8,6 +8,7 @@ import RapportSenODS from './RapportSenODS'
 import RapportRecouvrementDT from './RapportRecouvrementDT'
 import RapportCarteClients   from './RapportCarteClients'
 import RapportPrises         from './RapportPrises'
+import RapportRH             from './RapportRH'
 
 const DASH_BASE = process.env.NEXT_PUBLIC_DASH_URL || 'http://localhost:8050'
 
@@ -152,7 +153,7 @@ export default function ViewerPage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <TopBar />
-        <NotFound onBack={() => router.back()} />
+        <NotFound onBack={() => router.push('/dashboard/reports')} />
       </div>
     )
   }
@@ -174,8 +175,8 @@ export default function ViewerPage() {
         flexShrink: 0, fontFamily: F_BODY,
         boxShadow: '0 1px 4px rgba(31,59,114,.05)',
       }}>
-        {/* Retour */}
-        <button onClick={() => router.back()} style={{
+        {/* Retour — revient à la liste filtrée par catégorie */}
+        <button onClick={() => router.push(`/dashboard/reports?category=${report.category}`)} style={{
           display: 'flex', alignItems: 'center', gap: 5, background: 'none',
           border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 7,
           fontSize: 11, fontWeight: 700, color: 'rgba(31,59,114,.45)',
@@ -219,6 +220,8 @@ export default function ViewerPage() {
         <RapportCarteClients />
       ) : id === 'prises-facturation' ? (
         <RapportPrises />
+      ) : id === 'rh-dashboard' || id === 'rh-effectif' || id === 'rh-salaire' || id === 'rh-hs' || id === 'rh-formation' ? (
+        <RapportRH />
       ) : (
         <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {!loaded && !error && <LoadingState title={report.title} />}
@@ -236,7 +239,16 @@ export default function ViewerPage() {
               minHeight: 'calc(100vh - 104px)',
               display: error ? 'none' : 'block',
             }}
-            onLoad={() => setLoaded(true)}
+            onLoad={(e) => {
+              try {
+                // Si Chrome charge sa page d'erreur interne, on traite comme une erreur
+                const loc = (e.target as HTMLIFrameElement).contentWindow?.location?.href ?? ''
+                if (loc.startsWith('chrome-error://') || loc.startsWith('about:')) {
+                  setError(true); return
+                }
+              } catch { /* cross-origin — normal si Dash tourne */ }
+              setLoaded(true)
+            }}
             onError={() => setError(true)}
             title={report.title}
             allow="fullscreen"

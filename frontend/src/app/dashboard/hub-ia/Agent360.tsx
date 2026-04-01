@@ -528,7 +528,7 @@ export default function Agent360({ user }: { user: { name?: string; role?: strin
         const annee   = rhKpisDB.annee
         const ts      = new Date(rhKpisDB.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
         const masse   = fmtFcfa(rhKpisDB.masse_salariale)
-        const spk     = rhKpisDB.sparkline_masse.length > 0 ? rhKpisDB.sparkline_masse : d.kpis[2]?.sparkline
+        const spk     = (rhKpisDB.sparkline_masse?.length ?? 0) > 0 ? rhKpisDB.sparkline_masse : d.kpis[2]?.sparkline
 
         const tauxFemOk  = rhKpisDB.taux_feminisation >= 20
         const tauxHsOk   = rhKpisDB.taux_hs <= 2.5

@@ -52,7 +52,7 @@ async function fetchData(qs: string) {
 
     const bimSet = new Set<number>()
     for (const r of res.rows) bimSet.add(Number(r.bimestre))
-    const bimestres = [...bimSet].sort((a, b) => a - b)
+    const bimestres = Array.from(bimSet).sort((a, b) => a - b)
 
     const anneeRef = f.annee ?? (res.rows[0]?.annee ? Number(res.rows[0].annee) : null)
 

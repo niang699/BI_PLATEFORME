@@ -38,6 +38,21 @@ services:
       - ./backend:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
+  # ── Cache Redis ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: seneau_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Frontend Next.js ─────────────────────────────────────────────────────────
   frontend:
     build:
@@ -47,10 +62,12 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
       NEXT_PUBLIC_DASH_URL: http://localhost:8050
+      REDIS_URL: redis://redis:6379
     ports:
       - "3000:3000"
     depends_on:
       - backend
+      - redis
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -70,3 +87,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

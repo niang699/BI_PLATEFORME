@@ -801,7 +801,7 @@ function TabMatrice({ qs }: { qs: string }) {
       uoEntry.cells[r.bimestre] = { ca: r.ca, enc: r.enc, imp: r.imp, taux: r.taux }
     }
   }
-  const drList = [...drMap.values()]
+  const drList = Array.from(drMap.values())
 
   const toggleDr = (dr: string) =>
     setCollapsed(prev => { const s = new Set(prev); s.has(dr) ? s.delete(dr) : s.add(dr); return s })
@@ -886,7 +886,7 @@ function TabMatrice({ qs }: { qs: string }) {
                   </tr>
 
                   {/* Lignes UO */}
-                  {!isCollapsed && entry.uos.map((uoEntry, ui) => (
+                  {!isCollapsed && entry.uos.map((uoEntry: typeof entry.uos[0], ui: number) => (
                     <tr key={uoEntry.uo} style={{ background: ui % 2 === 0 ? '#fff' : '#fafbfd' }}>
                       <td style={{
                         padding: '7px 12px 7px 34px', fontWeight: 500, fontSize: 12,

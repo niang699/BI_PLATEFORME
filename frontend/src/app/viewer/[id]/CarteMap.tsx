@@ -73,8 +73,8 @@ function secteurColorAdapt(taux: number | undefined, dark: boolean): string {
 export { PROFIL_CATS, profilColor, secteurColor } from './carteUtils'
 
 /* Variantes vives pour fond sombre (map Carto Dark) */
-export function profilColorDark(profil: string): string {
-  const p = profil.toLowerCase()
+export function profilColorDark(profil: string | null | undefined): string {
+  const p = (profil ?? '').toLowerCase()
   if (p.includes('particulier')) return C_POINT_BLUE
   if (/entreprise|usine|hotel|restaurant|boulangerie|pharmacie|chantier|banque|clinique|industrie/i.test(p)) return C_POINT_AMBER
   if (/hôpital|hopital|école|ecole|université|universite|bâtiment|batiment|ambassade|organisation|municipal|administratif|parc|marché/i.test(p)) return C_POINT_GREEN
