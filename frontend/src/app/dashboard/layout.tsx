@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth'
+import { fetchCurrentUser } from '@/lib/auth'
 import Sidebar from '@/components/Sidebar'
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext'
 
@@ -12,7 +12,10 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    if (!getCurrentUser()) router.replace('/login')
+    // Validation de session côté serveur (cookie HttpOnly → DB Portail_DATA)
+    fetchCurrentUser().then(user => {
+      if (!user) router.replace('/login')
+    })
   }, [router])
 
   // Scroll manuel vers le haut à chaque changement de page

@@ -18,7 +18,8 @@ import { withCache, TTL_1H } from '@/lib/serverCache'
 const OBJECTIF_TAUX = 98.5
 
 async function fetchData(qs: string) {
-  const sp = new URLSearchParams(qs)
+  const sp   = new URLSearchParams(qs)
+  const mode = sp.get('mode') ?? 'full'   // 'summary' | 'full'
   let f = parseFilters(sp)
 
   const client = await pool.connect()
@@ -36,6 +37,36 @@ async function fetchData(qs: string) {
     }
 
     const { cte, params } = buildCteQuery(f)
+
+    /* ── Mode summary : une seule agrégation globale (pas de UNION ALL) ── */
+    if (mode === 'summary') {
+      const res = await client.query(`
+        ${cte}
+        SELECT
+          COUNT(*)::int                             AS nb_factures,
+          COALESCE(SUM(chiffre_affaire),0)::float8  AS ca,
+          COALESCE(SUM(montant_regle),  0)::float8  AS enc,
+          COALESCE(SUM(impaye),         0)::float8  AS imp,
+          COUNT(DISTINCT "DR")::int                 AS nb_dr
+        FROM base
+      `, params)
+      const row = res.rows[0] ?? {}
+      const ca  = Number(row.ca  ?? 0)
+      const enc = Number(row.enc ?? 0)
+      const imp = Number(row.imp ?? 0)
+      const taux = ca > 0 ? Math.round(enc * 1000 / ca) / 10 : 0
+      return {
+        filters:           f,
+        nb_factures:       Number(row.nb_factures ?? 0),
+        ca_total:          ca,
+        encaissement:      enc,
+        impaye:            imp,
+        taux_recouvrement: taux,
+        taux_impaye:       ca > 0 ? Math.round(imp * 1000 / ca) / 10 : 0,
+        nb_dr:             Number(row.nb_dr ?? 0),
+        objectif_taux:     OBJECTIF_TAUX,
+      }
+    }
 
     const res = await client.query(`
       ${cte}
@@ -72,6 +103,32 @@ async function fetchData(qs: string) {
         NULL, NULL
       FROM base
       GROUP BY bv, av
+
+      UNION ALL
+
+      -- Répartition par groupe de facturation
+      SELECT 'grp', "GROUPE_FACTURATION", NULL, NULL,
+        COUNT(*)::int,
+        COALESCE(SUM(chiffre_affaire),0)::float8,
+        COALESCE(SUM(montant_regle),  0)::float8,
+        COALESCE(SUM(impaye),         0)::float8,
+        NULL
+      FROM base
+      WHERE "GROUPE_FACTURATION" IS NOT NULL AND "GROUPE_FACTURATION" <> ''
+      GROUP BY "GROUPE_FACTURATION"
+
+      UNION ALL
+
+      -- Détail par secteur (UO) — utilisé quand un DT est filtré sur sa DR
+      SELECT 'uo', "UO", NULL, NULL,
+        COUNT(*)::int,
+        COALESCE(SUM(chiffre_affaire),0)::float8,
+        COALESCE(SUM(montant_regle),  0)::float8,
+        COALESCE(SUM(impaye),         0)::float8,
+        NULL
+      FROM base
+      WHERE "UO" IS NOT NULL AND "UO" <> ''
+      GROUP BY "UO"
 
       ORDER BY t, ca DESC NULLS LAST
     `, params)
@@ -114,6 +171,39 @@ async function fetchData(qs: string) {
       }
     })
 
+    const par_uo = rows.filter(r => r.t === 'uo').map(r => {
+      const rCa  = Number(r.ca)
+      const rEnc = Number(r.enc)
+      const rImp = Number(r.imp)
+      const rTaux = rCa > 0 ? Math.round(rEnc * 1000 / rCa) / 10 : 0
+      return {
+        uo:                String(r.lbl),
+        nb_factures:       Number(r.nb_factures),
+        ca_total:          rCa,
+        encaissement:      rEnc,
+        impaye:            rImp,
+        taux_recouvrement: rTaux,
+        taux_impaye:       rCa > 0 ? Math.round(rImp * 1000 / rCa) / 10 : 0,
+        a_risque:          rTaux < OBJECTIF_TAUX,
+        ecart_objectif:    Math.round((rTaux - OBJECTIF_TAUX) * 10) / 10,
+      }
+    }).sort((a, b) => b.taux_recouvrement - a.taux_recouvrement)
+
+    const par_groupe_facturation = rows.filter(r => r.t === 'grp').map(r => {
+      const rCa  = Number(r.ca)
+      const rEnc = Number(r.enc)
+      const rImp = Number(r.imp)
+      return {
+        groupe:            String(r.lbl),
+        nb_factures:       Number(r.nb_factures),
+        ca_total:          rCa,
+        encaissement:      rEnc,
+        impaye:            rImp,
+        taux_recouvrement: rCa > 0 ? Math.round(rEnc * 1000 / rCa) / 10 : 0,
+        taux_impaye:       rCa > 0 ? Math.round(rImp * 1000 / rCa) / 10 : 0,
+      }
+    }).sort((a, b) => b.taux_recouvrement - a.taux_recouvrement)
+
     const dts_a_risque = par_dr.filter(d => d.a_risque).sort((a, b) => a.taux_recouvrement - b.taux_recouvrement)
     const meilleure    = par_dr[0]    ?? null
     const pire         = par_dr[par_dr.length - 1] ?? null
@@ -131,7 +221,9 @@ async function fetchData(qs: string) {
       objectif_taux:     OBJECTIF_TAUX,
       // ── Détail par DT ──
       par_dr,
+      par_uo,
       par_bimestre,
+      par_groupe_facturation,
       dts_a_risque,
       meilleure_dt: meilleure ? { direction_territoriale: meilleure.dr, taux_recouvrement: meilleure.taux_recouvrement } : null,
       pire_dt:      pire      ? { direction_territoriale: pire.dr,      taux_recouvrement: pire.taux_recouvrement      } : null,

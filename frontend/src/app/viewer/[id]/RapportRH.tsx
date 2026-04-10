@@ -1,11 +1,11 @@
 'use client'
 import { useParams } from 'next/navigation'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertTriangle, Users, Banknote, Clock, GraduationCap, BarChart2, Info } from 'lucide-react'
 import {
   BarChart, Bar, LineChart, Line, ComposedChart,
   AreaChart, Area, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList,
   ResponsiveContainer,
 } from 'recharts'
 
@@ -63,8 +63,9 @@ interface ThemeRow    { theme: string; heures: number; nb_collab: number }
 interface FormEtaRow  { etablissement: string; heures: number; nb_collab: number }
 interface AnneeEffRow { annee: number; nb_total: number; nb_femmes: number; nb_hommes: number; taux_feminisation: number }
 interface AnneeMasseRow { annee: number; masse: number; is_last: boolean }
-interface AncTrancheRow { tranche: string; sort_key: number; effectif: number }
-interface ContratRow    { type_contrat: string; libelle: string; effectif: number }
+interface AncTrancheRow  { tranche: string; sort_key: number; effectif: number }
+interface AncFeminRow    { tranche: string; sort_key: number; nb_total: number; nb_femmes: number; taux_feminisation: number }
+interface ContratRow     { type_contrat: string; libelle: string; effectif: number }
 interface HsRubriqueRow { rubrique: string; montant: number; nb_collab: number }
 interface HsEtaRow      { etablissement: string; montant: number; nb_heures: number; nb_collab: number }
 interface HsCatRow      { categorie: string; montant: number }
@@ -77,8 +78,9 @@ interface Details {
   masse_par_statut: StatutRow[]
   formation_par_theme: ThemeRow[]
   formation_par_eta: FormEtaRow[]
-  anciennete_tranches: AncTrancheRow[]
-  repartition_contrat: ContratRow[]
+  anciennete_tranches:     AncTrancheRow[]
+  anciennete_feminisation: AncFeminRow[]
+  repartition_contrat:     ContratRow[]
   hs_par_rubrique: HsRubriqueRow[]
   hs_par_eta: HsEtaRow[]
   hs_par_categorie: HsCatRow[]
@@ -114,7 +116,15 @@ function KpiCard({ label, value, sub, accent, icon, variation, varInverse, info 
   label: string; value: string; sub?: string; accent?: string
   icon?: React.ReactNode; variation?: number | null; varInverse?: boolean; info?: string
 }) {
-  const [showInfo, setShowInfo] = useState(false)
+  const [tipPos, setTipPos] = useState<{ x: number; y: number } | null>(null)
+  const iconRef = useRef<HTMLSpanElement>(null)
+
+  const showTip = () => {
+    const rect = iconRef.current?.getBoundingClientRect()
+    if (rect) setTipPos({ x: rect.left, y: rect.bottom + 6 })
+  }
+  const hideTip = () => setTipPos(null)
+
   return (
     <div style={{
       background: '#fff', borderRadius: 14, padding: '16px 20px',
@@ -130,19 +140,31 @@ function KpiCard({ label, value, sub, accent, icon, variation, varInverse, info 
         {label}
         {info && (
           <span
-            style={{ cursor: 'pointer', color: C_BLUE }}
-            onClick={() => setShowInfo(s => !s)}
+            ref={iconRef}
+            style={{ cursor: 'help', color: C_BLUE, display: 'inline-flex' }}
+            onMouseEnter={showTip}
+            onMouseLeave={hideTip}
           >
-            <Info size={10} />
+            <Info size={11} />
           </span>
         )}
       </div>
-      {showInfo && info && (
+      {tipPos && info && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 10, background: '#fff',
-          border: '1px solid #e8edf5', borderRadius: 10, padding: '10px 12px',
-          fontSize: 10, fontFamily: F_BODY, color: C_NAVY, boxShadow: '0 4px 16px rgba(31,59,114,.12)',
-          maxWidth: 260, lineHeight: 1.5,
+          position: 'fixed',
+          top: tipPos.y,
+          left: Math.min(tipPos.x, window.innerWidth - 280),
+          zIndex: 9999,
+          background: '#1e2d4d',
+          color: '#fff',
+          borderRadius: 10,
+          padding: '10px 14px',
+          fontSize: 11,
+          fontFamily: F_BODY,
+          lineHeight: 1.6,
+          maxWidth: 270,
+          boxShadow: '0 8px 24px rgba(0,0,0,.25)',
+          pointerEvents: 'none',
         }}>{info}</div>
       )}
       <div style={{ fontSize: 22, fontWeight: 800, fontFamily: F_TITLE, color: accent ?? C_NAVY, lineHeight: 1.1 }}>
@@ -411,6 +433,7 @@ function SectionEffectif({ d, details, evol }: { d: RhKpis; details: Details | n
   const effQuali = details?.effectif_par_qualification ?? []
   const annuelle = evol?.annuelle_effectif ?? []
   const ancTranches  = details?.anciennete_tranches ?? []
+  const ancFemin     = details?.anciennete_feminisation ?? []
   const repContrat   = details?.repartition_contrat ?? []
 
   return (
@@ -492,22 +515,97 @@ function SectionEffectif({ d, details, evol }: { d: RhKpis; details: Details | n
 
       {/* Ancienneté par tranche */}
       {ancTranches.length > 0 && (
-        <Panel>
-          <PanelHeader icon={<Clock size={13} />} title="Ancienneté par Tranche" color={C_ORANGE} />
-          <div style={{ padding: '18px 20px' }}>
-            <ResponsiveContainer width="100%" height={Math.max(180, ancTranches.length * 36)}>
-              <BarChart data={ancTranches} layout="vertical" barSize={10} margin={{ left: 10, right: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f3f9" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 9, fontFamily: F_BODY }} />
-                <YAxis type="category" dataKey="tranche" tick={{ fontSize: 10, fontFamily: F_BODY }} width={75} />
-                <Tooltip content={<ChTip fmtVal={fmtN} />} />
-                <Bar dataKey="effectif" name="Effectif" radius={[0,4,4,0]}>
-                  {ancTranches.map((_, i) => <Cell key={i} fill={PALETTE_MIX[i % PALETTE_MIX.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
+
+          {/* Histogramme horizontal */}
+          <Panel>
+            <PanelHeader icon={<Clock size={13} />} title="Effectif par Tranche d'Ancienneté" color={C_ORANGE} />
+            <div style={{ padding: '18px 20px' }}>
+              <ResponsiveContainer width="100%" height={Math.max(220, ancTranches.length * 38)}>
+                <BarChart data={ancTranches} layout="vertical" barSize={14} margin={{ left: 10, right: 50 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f3f9" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: F_BODY }} />
+                  <YAxis type="category" dataKey="tranche" tick={{ fontSize: 10, fontFamily: F_BODY }} width={80} />
+                  <Tooltip content={<ChTip fmtVal={fmtN} />} />
+                  <Bar dataKey="effectif" name="Effectif" radius={[0, 5, 5, 0]}>
+                    {ancTranches.map((_, i) => (
+                      <Cell key={i} fill={PALETTE_MIX[i % PALETTE_MIX.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Panel>
+
+          {/* Taux de féminisation par tranche d'ancienneté */}
+          <Panel>
+            <PanelHeader icon={<Users size={13} />} title="Taux de Féminisation par Ancienneté" color={C_PURPLE} />
+            <div style={{ padding: '18px 20px' }}>
+              <ResponsiveContainer width="100%" height={Math.max(220, ancFemin.length * 38)}>
+                <ComposedChart
+                  data={ancFemin}
+                  layout="vertical"
+                  margin={{ left: 10, right: 55 }}
+                  barSize={14}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f3f9" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tickFormatter={(v: number) => `${v}%`}
+                    tick={{ fontSize: 9, fontFamily: F_BODY }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="tranche"
+                    tick={{ fontSize: 10, fontFamily: F_BODY }}
+                    width={80}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(v: unknown, name: unknown, entry: { payload?: AncFeminRow }) => {
+                      const row = entry.payload
+                      if (name === 'taux_feminisation')
+                        return [`${(v as number).toFixed(1)}%  (${row?.nb_femmes ?? 0} F / ${row?.nb_total ?? 0})`, 'Taux féminisation']
+                      return [fmtN(v as number), String(name)]
+                    }}
+                  />
+                  <Bar dataKey="taux_feminisation" name="taux_feminisation" radius={[0, 6, 6, 0]}>
+                    {ancFemin.map((row, i) => (
+                      <Cell
+                        key={i}
+                        fill={row.taux_feminisation >= 20 ? C_GREEN : row.taux_feminisation >= 10 ? C_ORANGE : C_RED}
+                      />
+                    ))}
+                    <LabelList
+                      dataKey="taux_feminisation"
+                      position="right"
+                      formatter={(v: unknown) => `${(v as number).toFixed(1)}%`}
+                      style={{ fontSize: 10, fontFamily: F_BODY, fontWeight: 700, fill: '#334155' }}
+                    />
+                  </Bar>
+                </ComposedChart>
+              </ResponsiveContainer>
+              {/* Légende seuil */}
+              <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
+                {[
+                  { color: C_GREEN,  label: '≥ 20 %  Objectif atteint' },
+                  { color: C_ORANGE, label: '10–19 %  En progression' },
+                  { color: C_RED,    label: '< 10 %  Insuffisant' },
+                ].map(s => (
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontFamily: F_BODY, color: '#64748b' }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Panel>
+
+        </div>
       )}
 
       {/* Effectif par établissement + Donut qualification */}
@@ -516,14 +614,26 @@ function SectionEffectif({ d, details, evol }: { d: RhKpis; details: Details | n
           <Panel>
             <PanelHeader icon={<BarChart2 size={13} />} title="Effectif par Établissement" color={C_NAVY} />
             <div style={{ padding: '18px 20px' }}>
-              <ResponsiveContainer width="100%" height={Math.max(240, effEta.length * 36)}>
-                <BarChart data={effEta} layout="vertical" margin={{ left: 10, right: 40 }}>
+              <ResponsiveContainer width="100%" height={Math.max(260, effEta.length * 42)}>
+                <BarChart
+                  data={[...effEta].sort((a, b) => b.effectif - a.effectif)}
+                  layout="vertical"
+                  barSize={18}
+                  margin={{ left: 10, right: 55 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f3f9" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: F_BODY }} />
-                  <YAxis type="category" dataKey="etablissement" tick={{ fontSize: 10, fontFamily: F_BODY }} width={120} />
+                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: F_BODY }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="etablissement" tick={{ fontSize: 10, fontFamily: F_BODY }} width={130} axisLine={false} tickLine={false} />
                   <Tooltip content={<ChTip fmtVal={fmtN} />} />
-                  <Bar dataKey="effectif" name="Effectif" radius={[0,4,4,0]}>
-                    {effEta.map((_, i) => <Cell key={i} fill={PALETTE_NAVY[i % PALETTE_NAVY.length]} />)}
+                  <Bar dataKey="effectif" name="Effectif" radius={[0, 6, 6, 0]}>
+                    {[...effEta].sort((a, b) => b.effectif - a.effectif).map((_, i) => (
+                      <Cell key={i} fill={PALETTE_NAVY[i % PALETTE_NAVY.length]} />
+                    ))}
+                    <LabelList
+                      dataKey="effectif"
+                      position="right"
+                      style={{ fontSize: 10, fontFamily: F_BODY, fontWeight: 700, fill: '#334155' }}
+                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

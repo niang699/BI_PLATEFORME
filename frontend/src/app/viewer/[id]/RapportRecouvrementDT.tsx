@@ -45,7 +45,7 @@ interface BimRow {
   taux_recouvrement: number
 }
 
-interface KpisData {
+interface SummaryData {
   ca_total: number
   encaissement: number
   impaye: number
@@ -54,12 +54,15 @@ interface KpisData {
   nb_factures: number
   nb_dr: number
   objectif_taux: number
+  filters: { annee: number | null; bimestre: number | null }
+}
+
+interface KpisData extends SummaryData {
   par_dr: DtRow[]
   par_bimestre: BimRow[]
   dts_a_risque: DtRow[]
   meilleure_dt: { direction_territoriale: string; taux_recouvrement: number } | null
   pire_dt:      { direction_territoriale: string; taux_recouvrement: number } | null
-  filters: { annee: number | null; bimestre: number | null }
 }
 
 /* ═══════════════════════════════ STYLES ═══════════════════════════════════ */
@@ -505,15 +508,28 @@ function TableDR({ rows }: { rows: DtRow[] }) {
   )
 }
 
+function SkeletonBlock({ height = 140 }: { height?: number }) {
+  return (
+    <div style={{
+      height, borderRadius: 14,
+      background: 'linear-gradient(90deg,#f0f3f9 25%,#e8edf5 50%,#f0f3f9 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer-rdt 1.4s ease-in-out infinite',
+    }} />
+  )
+}
+
 /* ══════════════════════════ COMPOSANT PRINCIPAL ═══════════════════════════ */
 export default function RapportRecouvrementDT() {
-  const [filtres,  setFiltres]  = useState<Filtres>(INIT)
-  const [opts,     setOpts]     = useState<FiltresOpts | null>(null)
-  const [unitesDr, setUnitesDr] = useState<string[] | null>(null)
-  const [advanced, setAdvanced] = useState(false)
-  const [data,     setData]     = useState<KpisData | null>(null)
-  const [loading,  setLoading]  = useState(true)
-  const [err,      setErr]      = useState('')
+  const [filtres,    setFiltres]    = useState<Filtres>(INIT)
+  const [opts,       setOpts]       = useState<FiltresOpts | null>(null)
+  const [unitesDr,   setUnitesDr]   = useState<string[] | null>(null)
+  const [advanced,   setAdvanced]   = useState(false)
+  const [summary,    setSummary]    = useState<SummaryData | null>(null)   // Phase 1
+  const [details,    setDetails]    = useState<KpisData | null>(null)      // Phase 2
+  const [loading,    setLoading]    = useState(true)
+  const [loadingBg,  setLoadingBg]  = useState(false)
+  const [err,        setErr]        = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
   /* Charger options filtres au montage */
@@ -552,26 +568,38 @@ export default function RapportRecouvrementDT() {
   const mk  = (arr: string[], all: string) => [{ value: 'all', label: all }, ...arr.map(v => ({ value: v, label: v }))]
   const mkN = (arr: number[], all: string) => [{ value: 'all', label: all }, ...arr.map(n => ({ value: String(n), label: String(n) }))]
 
-  /* Fetch données KPIs */
+  /* Fetch données KPIs — 2 phases (même pattern que RapportRH) */
   useEffect(() => {
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
-    setLoading(true); setErr('')
-    fetch(`/api/facturation/kpis?${qs}`, { signal: ctrl.signal })
+    setLoading(true); setLoadingBg(false); setErr('')
+    setSummary(null); setDetails(null)
+
+    /* Phase 1 — agrégats globaux uniquement (affichage immédiat) */
+    fetch(`/api/facturation/kpis?${qs}&mode=summary`, { signal: ctrl.signal })
       .then(r => r.ok ? r.json() : r.json().then((e: { error: string }) => Promise.reject(e.error)))
-      .then((d: KpisData) => { setData(d); setLoading(false) })
+      .then((s: SummaryData) => {
+        setSummary(s)
+        setLoading(false)
+
+        /* Phase 2 — détails complets en arrière-plan */
+        setLoadingBg(true)
+        fetch(`/api/facturation/kpis?${qs}`, { signal: ctrl.signal })
+          .then(r => r.ok ? r.json() : r.json().then((e: { error: string }) => Promise.reject(e.error)))
+          .then((d: KpisData) => { setDetails(d); setLoadingBg(false) })
+          .catch(e => { if ((e as { name?: string }).name !== 'AbortError') setLoadingBg(false) })
+      })
       .catch(e => { if ((e as { name?: string }).name !== 'AbortError') { setErr(String(e)); setLoading(false) } })
   }, [qs])
 
-  const d = data
-  const anneeLabel = filtres.annee !== 'all' ? filtres.annee : (d?.filters?.annee ? String(d.filters.annee) : '')
-  const bimLabel   = filtres.bimestre !== 'all' ? (BIMESTRE_LABELS[Number(filtres.bimestre)] ?? `B${filtres.bimestre}`) : 'Toute l\'année'
+  const anneeLabel   = filtres.annee !== 'all' ? filtres.annee : (summary?.filters?.annee ? String(summary.filters.annee) : '')
+  const bimLabel     = filtres.bimestre !== 'all' ? (BIMESTRE_LABELS[Number(filtres.bimestre)] ?? `B${filtres.bimestre}`) : 'Toute l\'année'
   const periodeLabel = anneeLabel ? `${anneeLabel} · ${bimLabel}` : bimLabel
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f4f6fb', fontFamily: F_BODY, overflowY: 'auto' }}>
-      <style>{`@keyframes spin-rdt { to { transform:rotate(360deg); } }`}</style>
+      <style>{`@keyframes spin-rdt { to { transform:rotate(360deg); } } @keyframes shimmer-rdt { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
       {/* ── Barre de filtres ──────────────────────────────────────────── */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e8edf5', padding: '12px 24px', flexShrink: 0, boxShadow: '0 1px 4px rgba(31,59,114,.04)' }}>
@@ -597,9 +625,9 @@ export default function RapportRecouvrementDT() {
             </button>
           )}
 
-          {d && !loading && (
+          {summary && !loading && (
             <div style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, background: '#f4f6fb', border: '1px solid #e8edf5', fontSize: 11, fontWeight: 600, color: 'rgba(31,59,114,.5)', fontFamily: F_BODY, alignSelf: 'flex-end' }}>
-              {periodeLabel} · {d.nb_dr} DR
+              {periodeLabel} · {summary.nb_dr} DR
             </div>
           )}
         </div>
@@ -625,82 +653,104 @@ export default function RapportRecouvrementDT() {
 
       {/* ── Contenu ────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Phase 1 : spinner initial */}
         {loading && <Loader />}
         {!loading && err && <ErrMsg msg={err} />}
-        {!loading && !err && d && (
+
+        {!loading && !err && summary && (
           <>
-            {/* KPI cards */}
+            {/* ── KPI cards Phase 1 (disponibles immédiatement) ── */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <KpiCard label="Taux de Recouvrement" value={fmtPct(d.taux_recouvrement)}
+              <KpiCard label="Taux de Recouvrement" value={fmtPct(summary.taux_recouvrement)}
                 sub={`Objectif : ${OBJECTIF}%`}
-                accent={tauxColor(d.taux_recouvrement).color} />
-              <KpiCard label="Chiffre d'Affaires" value={fmtFcfa(d.ca_total)} sub="TTC" />
-              <KpiCard label="Encaissements" value={fmtFcfa(d.encaissement)} sub="réglés" accent={C_GREEN} />
-              <KpiCard label="Impayés" value={fmtFcfa(d.impaye)} sub="solde" accent={C_RED} />
-              <KpiCard label="DR sous objectif" value={String(d.dts_a_risque.length)}
-                sub={`sur ${d.nb_dr} DR`}
-                accent={d.dts_a_risque.length > 0 ? C_RED : '#4a7c10'} />
-              {d.meilleure_dt && (
-                <KpiCard label="Meilleure DR" value={fmtPct(d.meilleure_dt.taux_recouvrement)}
-                  sub={d.meilleure_dt.direction_territoriale} accent="#16a34a" />
-              )}
-              {d.pire_dt && (
-                <KpiCard label="DR à améliorer" value={fmtPct(d.pire_dt.taux_recouvrement)}
-                  sub={d.pire_dt.direction_territoriale} accent={C_RED} />
+                accent={tauxColor(summary.taux_recouvrement).color} />
+              <KpiCard label="Chiffre d'Affaires" value={fmtFcfa(summary.ca_total)} sub="TTC" />
+              <KpiCard label="Encaissements" value={fmtFcfa(summary.encaissement)} sub="réglés" accent={C_GREEN} />
+              <KpiCard label="Impayés" value={fmtFcfa(summary.impaye)} sub="solde" accent={C_RED} />
+
+              {/* ── KPI cards Phase 2 (après chargement détails) ── */}
+              {details && (
+                <>
+                  <KpiCard label="DR sous objectif" value={String(details.dts_a_risque.length)}
+                    sub={`sur ${details.nb_dr} DR`}
+                    accent={details.dts_a_risque.length > 0 ? C_RED : '#4a7c10'} />
+                  {details.meilleure_dt && (
+                    <KpiCard label="Meilleure DR" value={fmtPct(details.meilleure_dt.taux_recouvrement)}
+                      sub={details.meilleure_dt.direction_territoriale} accent="#16a34a" />
+                  )}
+                  {details.pire_dt && (
+                    <KpiCard label="DR à améliorer" value={fmtPct(details.pire_dt.taux_recouvrement)}
+                      sub={details.pire_dt.direction_territoriale} accent={C_RED} />
+                  )}
+                </>
               )}
             </div>
 
-            {/* Alerte DTs à risque */}
-            {d.dts_a_risque.length > 0 && (
-              <div style={{ background: 'rgba(232,64,64,.05)', border: '1px solid rgba(232,64,64,.2)', borderRadius: 14, padding: '14px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <TrendingDown size={15} color={C_RED} strokeWidth={2} style={{ flexShrink: 0 }} />
-                  <span style={{ fontFamily: F_BODY, fontSize: 12, fontWeight: 800, color: C_RED }}>
-                    {d.dts_a_risque.length} DR en dessous de l&apos;objectif {OBJECTIF}%
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {d.dts_a_risque.map(dt => (
-                    <div key={dt.dr} style={{ background: '#fff', borderRadius: 10, padding: '8px 14px', border: '1px solid rgba(232,64,64,.15)', boxShadow: '0 1px 4px rgba(232,64,64,.08)' }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: C_NAVY, fontFamily: F_BODY }}>{dt.dr}</div>
-                      <div style={{ fontSize: 13, fontWeight: 900, color: C_RED, fontFamily: F_TITLE, marginTop: 2 }}>{fmtPct(dt.taux_recouvrement)}</div>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: C_ORANGE, fontFamily: F_BODY }}>{dt.ecart_objectif.toFixed(1)} pt sous objectif</div>
-                    </div>
-                  ))}
-                </div>
+            {/* ── Phase 2 : skeletons pendant chargement, puis charts ── */}
+            {loadingBg && !details && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <SkeletonBlock height={80} />
+                <SkeletonBlock height={260} />
+                <SkeletonBlock height={200} />
+                <SkeletonBlock height={220} />
               </div>
             )}
 
-            {/* Classement DR */}
-            <ChartClassementDR rows={d.par_dr} />
+            {details && (
+              <>
+                {/* Alerte DTs à risque */}
+                {details.dts_a_risque.length > 0 && (
+                  <div style={{ background: 'rgba(232,64,64,.05)', border: '1px solid rgba(232,64,64,.2)', borderRadius: 14, padding: '14px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <TrendingDown size={15} color={C_RED} strokeWidth={2} style={{ flexShrink: 0 }} />
+                      <span style={{ fontFamily: F_BODY, fontSize: 12, fontWeight: 800, color: C_RED }}>
+                        {details.dts_a_risque.length} DR en dessous de l&apos;objectif {OBJECTIF}%
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {details.dts_a_risque.map(dt => (
+                        <div key={dt.dr} style={{ background: '#fff', borderRadius: 10, padding: '8px 14px', border: '1px solid rgba(232,64,64,.15)', boxShadow: '0 1px 4px rgba(232,64,64,.08)' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: C_NAVY, fontFamily: F_BODY }}>{dt.dr}</div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: C_RED, fontFamily: F_TITLE, marginTop: 2 }}>{fmtPct(dt.taux_recouvrement)}</div>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: C_ORANGE, fontFamily: F_BODY }}>{dt.ecart_objectif.toFixed(1)} pt sous objectif</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {/* Évolution bimestrielle */}
-            {d.par_bimestre.length > 1 && <ChartEvolution rows={d.par_bimestre} />}
+                {/* Classement DR */}
+                <ChartClassementDR rows={details.par_dr} />
 
-            {/* Tableau détaillé */}
-            <Panel>
-              <div style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 4, height: 18, borderRadius: 99, background: C_NAVY, display: 'inline-block', flexShrink: 0 }} />
-                <SectionTitle>Détail par Direction Régionale</SectionTitle>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => exportCsv(d.par_dr, `recouvrement-dt_${periodeLabel.replace(/[^a-z0-9]/gi, '_')}.csv`)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid #e8edf5', background: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: C_NAVY, fontFamily: F_BODY, transition: 'all .15s', whiteSpace: 'nowrap' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.borderColor = C_NAVY }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#fff';    e.currentTarget.style.borderColor = '#e8edf5' }}
-                    title="Exporter en CSV (Excel)"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Exporter CSV
-                  </button>
-                </div>
-              </div>
-              <TableDR rows={d.par_dr} />
-            </Panel>
+                {/* Évolution bimestrielle */}
+                {details.par_bimestre.length > 1 && <ChartEvolution rows={details.par_bimestre} />}
+
+                {/* Tableau détaillé */}
+                <Panel>
+                  <div style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 4, height: 18, borderRadius: 99, background: C_NAVY, display: 'inline-block', flexShrink: 0 }} />
+                    <SectionTitle>Détail par Direction Régionale</SectionTitle>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => exportCsv(details.par_dr, `recouvrement-dt_${periodeLabel.replace(/[^a-z0-9]/gi, '_')}.csv`)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: '1px solid #e8edf5', background: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: C_NAVY, fontFamily: F_BODY, transition: 'all .15s', whiteSpace: 'nowrap' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.borderColor = C_NAVY }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#fff';    e.currentTarget.style.borderColor = '#e8edf5' }}
+                        title="Exporter en CSV (Excel)"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Exporter CSV
+                      </button>
+                    </div>
+                  </div>
+                  <TableDR rows={details.par_dr} />
+                </Panel>
+              </>
+            )}
           </>
         )}
       </div>

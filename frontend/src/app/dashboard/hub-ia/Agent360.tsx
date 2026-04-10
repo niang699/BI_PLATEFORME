@@ -86,7 +86,7 @@ export const DOMAINS: Domain[] = [
     color: '#0891B2',
     status: 'live',
     lastUpdate: 'Il y a 30 min',
-    roles: ['super_admin','admin_metier','analyste','lecteur_dt','releveur'],
+    roles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'],
     kpis: [
       { label:'Taux couverture',     value:'87,3', unit:'%',    statut:'warning', target:'95%',  trend:'up',    sparkline:[80,82,83,85,86,87,87], periode:'Tournée Mar 2026',    source:'Système Relevé SEN\'EAU' },
       { label:'Compteurs relevés',   value:'3 420',unit:'/3920', statut:'ok',     target:'3 920',trend:'up',    sparkline:[60,68,75,80,84,87,87], periode:'Tournée Mar 2026',    source:'Système Relevé SEN\'EAU' },
@@ -695,7 +695,7 @@ export default function Agent360({ user }: { user: { name?: string; role?: strin
 
   const roleLabel: Record<string,string> = {
     super_admin: 'Direction Générale', admin_metier: 'Admin Métier',
-    analyste: 'Analyste', lecteur_dt: 'Lecteur DT', releveur: 'Releveur',
+    analyste: 'Analyste', lecteur_dt: 'Lecteur DT', dt: 'Directeur DT',
   }
 
   return (

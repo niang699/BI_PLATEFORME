@@ -10,18 +10,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPwd,  setShowPwd]  = useState(false)
   const [error,    setError]    = useState('')
+  const [locked,   setLocked]   = useState(false)
   const [loading,  setLoading]  = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-    await new Promise(r => setTimeout(r, 600))
-    const user = login(email, password)
-    if (user) {
+    setLocked(false)
+    const result = await login(email, password)
+    if (result && 'user' in result) {
       router.push('/dashboard')
     } else {
-      setError('Email ou mot de passe incorrect.')
+      const msg = result && 'error' in result ? result.error : 'Erreur de connexion.'
+      const isLocked = result && 'reason' in result && result.reason === 'locked'
+      setError(msg)
+      setLocked(!!isLocked)
       setLoading(false)
     }
   }
@@ -153,11 +157,14 @@ export default function LoginPage() {
             {/* Erreur */}
             {error && (
               <div style={{
-                background:'#fef2f2', border:'1px solid #fecaca',
-                borderRadius:10, padding:'10px 14px',
-                fontSize:12.5, color:'#b91c1c', fontWeight:600,
+                background: locked ? '#fff7ed' : '#fef2f2',
+                border: `1px solid ${locked ? '#fed7aa' : '#fecaca'}`,
+                borderRadius:10, padding:'12px 14px',
+                fontSize:12.5, color: locked ? '#c2410c' : '#b91c1c', fontWeight:600,
+                display:'flex', alignItems:'flex-start', gap:8,
               }}>
-                ⚠️ {error}
+                <span style={{ fontSize:16, flexShrink:0 }}>{locked ? '🔒' : '⚠️'}</span>
+                <span>{error}</span>
               </div>
             )}
 

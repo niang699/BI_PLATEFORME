@@ -67,7 +67,7 @@ function PinnedCard({ report }: { report: typeof REPORTS[0] }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <span style={{
             fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em',
-            color: CATEGORY_META[report.category]?.label ? 'rgba(31,59,114,.38)' : 'rgba(31,59,114,.38)',
+            color: 'rgba(31,59,114,.38)',
           }}>
             {CATEGORY_META[report.category]?.label ?? report.category}
           </span>
@@ -110,21 +110,24 @@ function PinnedCard({ report }: { report: typeof REPORTS[0] }) {
   )
 }
 
-/* ══════════════════════════ PAGE ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════
+   PAGE
+══════════════════════════════════════════════════════════════════════════ */
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null)
-  useEffect(() => { setUser(getCurrentUser()) }, [])
+  const [greeting, setGreeting] = useState('')
+  const [dateLabel, setDateLabel] = useState('')
+
+  useEffect(() => {
+    setUser(getCurrentUser())
+    const h = new Date().getHours()
+    setGreeting(h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir')
+    setDateLabel(new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))
+  }, [])
 
   const pinned = REPORTS.filter(r => r.pinned)
   const recent = REPORTS.filter(r => !r.pinned).slice(0, 6)
   const unread = ALERTS.filter(a => !a.read)
-
-  const greeting = () => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Bonjour'
-    if (h < 18) return 'Bon après-midi'
-    return 'Bonsoir'
-  }
 
   const card: React.CSSProperties = {
     background: CARD, borderRadius: 14, padding: '22px 24px',
@@ -149,10 +152,10 @@ export default function HomePage() {
               fontFamily: F_TITLE, fontSize: 24, fontWeight: 800, color: NAVY,
               lineHeight: 1.1, margin: 0,
             }}>
-              {greeting()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
+              {greeting}{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
             </h2>
             <p style={{ fontSize: 12, color: 'rgba(31,59,114,.38)', margin: '5px 0 0', fontWeight: 500 }}>
-              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {dateLabel}
             </p>
           </div>
 

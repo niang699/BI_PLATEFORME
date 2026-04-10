@@ -193,7 +193,7 @@ export default function DrawerRapportCa({
                 <span>Année {annee}</span>
                 {bimestre && <span>· Bimestre {bimestre}</span>}
                 {dr        && <span>· DR {dr}</span>}
-                <span style={{ opacity: .5 }}>· {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                <span suppressHydrationWarning style={{ opacity: .5 }}>· {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
               </div>
             </div>
             <button onClick={onClose} style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background .15s' }}

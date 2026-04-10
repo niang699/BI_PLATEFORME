@@ -59,7 +59,7 @@ type RhKpis = {
 } | null
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
-type Mode = 'analyse' | 'glossaire' | 'rapport' | 'agent360' | 'selfservice'
+type Mode = 'analyse' | 'glossaire' | 'rapport'
 type Msg  = { role: 'user' | 'assistant'; content: string }
 
 type ReportKPI = { label: string; valeur: string; unite: string; cible: string; statut: 'ok' | 'warning' | 'alert' }
@@ -282,20 +282,12 @@ function ReportView({ data }: { data: ReportData }) {
 
 /* ── Données par mode ────────────────────────────────────────────────────── */
 const MODES: { id: Mode; icon: string; label: string; color: string }[] = [
-  { id:'agent360',    icon:'🔮', label:'Agent 360°',          color:'#059669' },
-  { id:'analyse',     icon:'📊', label:'Analyse',              color:'#1F3B72' },
-  { id:'glossaire',   icon:'📖', label:'Glossaire',            color:'#0891B2' },
-  { id:'rapport',     icon:'📋', label:'Rapport Narratif',     color:'#7C3AED' },
-  { id:'selfservice', icon:'✨', label:'Rapport Self-Service', color:'#DC6B19' },
+  { id:'analyse',  icon:'📊', label:'Analyse',          color:'#1F3B72' },
+  { id:'glossaire',icon:'📖', label:'Glossaire',        color:'#0891B2' },
+  { id:'rapport',  icon:'📋', label:'Rapport Narratif', color:'#7C3AED' },
 ]
 
 const MODE_DESC: Record<Mode, { headline: string; sub: string; badge: string; badgeColor: string }> = {
-  agent360: {
-    headline: 'Tableau de bord Agent 360°',
-    sub: 'Vue consolidée de tous vos indicateurs disponibles — Facturation, Score Client, Releveurs, SIG, Production et plus encore.',
-    badge: '4 domaines connectés',
-    badgeColor: '#059669',
-  },
   analyse: {
     headline: 'Analyse des performances',
     sub: `Interrogez JAMBAR sur vos ${TOTAL} indicateurs SEN'EAU. Identifiez les écarts, les tendances et obtenez des recommandations ciblées.`,
@@ -314,16 +306,9 @@ const MODE_DESC: Record<Mode, { headline: string; sub: string; badge: string; ba
     badge: 'Rapport prêt en quelques secondes',
     badgeColor: '#7C3AED',
   },
-  selfservice: {
-    headline: 'Rapport Self-Service',
-    sub: 'Configurez votre rapport sur mesure : choisissez vos sources (Facturation, RH, croisé), la période et le type d\'analyse. JAMBAR génère un rapport structuré exportable en PDF.',
-    badge: 'Export PDF inclus',
-    badgeColor: '#DC6B19',
-  },
 }
 
 const SUGGESTIONS: Record<Mode, { icon: string; text: string; sub: string }[]> = {
-  agent360: [],
   analyse: [
     { icon:'📊', text:'Performance globale', sub:'Taux global de cibles atteintes ?' },
     { icon:'⚠️', text:'Services en difficulté', sub:'Quels services sous-performent ?' },
@@ -340,7 +325,6 @@ const SUGGESTIONS: Record<Mode, { icon: string; text: string; sub: string }[]> =
     { icon:'🗄️', text:'Gouvernance des données', sub:'Cadre et responsabilités' },
     { icon:'💰', text:'CA vs encaissement', sub:'Différence comptable clé' },
   ],
-  selfservice: [],
   rapport: [
     { icon:'💧', text:'Rapport Facturation', sub:'Génère un rapport facturation complet avec les données réelles : CA, encaissement, impayés, taux de recouvrement par DT, et recommandations ciblées.' },
     { icon:'👥', text:'Rapport RH', sub:'Génère un rapport RH mensuel avec les données réelles : effectifs, taux de féminisation, masse salariale, heures supplémentaires et formation.' },
@@ -363,12 +347,12 @@ function renderMd(text: string) {
    PAGE
 ══════════════════════════════════════════════════════════════════════════ */
 export default function HubIAPage() {
-  const [mode, setMode]           = useState<Mode>('agent360')
-  const [allMsgs, setAllMsgs]     = useState<Record<Mode, Msg[]>>({ agent360:[], analyse:[], glossaire:[], rapport:[], selfservice:[] })
+  const [mode, setMode]           = useState<Mode>('analyse')
+  const [allMsgs, setAllMsgs]     = useState<Record<Mode, Msg[]>>({ analyse:[], glossaire:[], rapport:[] })
   const [input, setInput]         = useState('')
   const [loading, setLoading]     = useState(false)
   const [user, setUser]           = useState<ReturnType<typeof getCurrentUser>>(null)
-  const [allReports, setAllReports] = useState<Record<Mode, Record<number, ReportData>>>({ agent360:{}, analyse:{}, glossaire:{}, rapport:{}, selfservice:{} })
+  const [allReports, setAllReports] = useState<Record<Mode, Record<number, ReportData>>>({ analyse:{}, glossaire:{}, rapport:{} })
   const [factKpis, setFactKpis] = useState<FactKpis>(null)
   const [rhKpis,   setRhKpis]   = useState<RhKpis>(null)
   const chatRef = useRef<HTMLDivElement>(null)
@@ -560,21 +544,10 @@ export default function HubIAPage() {
           </div>
         </div>
 
-        {/* ── Agent 360° — dashboard full-page ──────────────────────────── */}
-        {mode === 'agent360' && (
-          <Agent360 user={user ? { name: user.name, role: user.role, dt: user.dt } : null} />
-        )}
-
-        {/* ── Self-Service Report ────────────────────────────────────────── */}
-        {mode === 'selfservice' && (
-          <SelfServiceReport factKpis={factKpis} rhKpis={rhKpis} />
-        )}
-
         {/* ── Zone conversation ──────────────────────────────────────────── */}
         <div ref={chatRef} style={{
           flex:1, overflowY:'auto', padding:'0 24px',
           scrollbarWidth:'thin', scrollbarColor:'rgba(31,59,114,.12) transparent',
-          display: (mode === 'agent360' || mode === 'selfservice') ? 'none' : 'block',
         }}>
           <div style={{ maxWidth:760, margin:'0 auto', paddingBottom:20 }}>
 
@@ -765,7 +738,7 @@ export default function HubIAPage() {
         </div>
 
         {/* ── Input zone — style ChatGPT ─────────────────────────────────── */}
-        {mode !== 'agent360' && mode !== 'selfservice' && <div style={{ padding:'16px 24px 20px', background:'#fff' }}>
+        {<div style={{ padding:'16px 24px 20px', background:'#fff' }}>
           <div style={{ maxWidth:760, margin:'0 auto' }}>
             <div style={{
               display:'flex', alignItems:'flex-end', gap:10,

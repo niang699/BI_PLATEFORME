@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import TopBar from '@/components/TopBar'
 import { INDICATEURS, SERVICES, GROUPES, type Indicateur } from '@/lib/indicateurs'
 import { PHASES, STATUT_META, roadmapStats, parseGanttDate, GANTT_TOTAL, type RoadmapStatut } from '@/lib/roadmapData'
@@ -127,6 +128,80 @@ export default function GouvernancePage() {
           {active === 'services'    && <PanneauServices    onSelect={setSelected} />}
           {active === 'processus'   && <PanneauProcessus   onSelect={setSelected} />}
           {active === 'calcules'    && <PanneauCalcules    onSelect={setSelected} />}
+        </div>
+
+        {/* ── Hub sous-modules Gouvernance ─────────────────────────────────── */}
+        <div style={{ padding:'0 32px 0', display:'flex', flexDirection:'column', gap:12 }}>
+          <Link href="/dashboard/gouvernance/data-quality" style={{ textDecoration:'none', display:'block' }}>
+            <div style={{
+              background:'linear-gradient(135deg,#1F3B72 0%,#162c58 100%)',
+              borderRadius:16, padding:'20px 28px',
+              display:'flex', alignItems:'center', gap:20,
+              boxShadow:'0 4px 20px rgba(31,59,114,.18)',
+              cursor:'pointer', transition:'transform .15s, box-shadow .15s',
+            }}
+            onMouseEnter={e=>{
+              (e.currentTarget as HTMLDivElement).style.transform='translateY(-2px)'
+              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 8px 32px rgba(31,59,114,.28)'
+            }}
+            onMouseLeave={e=>{
+              (e.currentTarget as HTMLDivElement).style.transform=''
+              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 4px 20px rgba(31,59,114,.18)'
+            }}>
+              {/* Icône */}
+              <div style={{
+                width:52, height:52, borderRadius:14, flexShrink:0,
+                background:'rgba(150,193,30,.15)', border:'1px solid rgba(150,193,30,.25)',
+                display:'flex', alignItems:'center', justifyContent:'center', fontSize:24,
+              }}>⬡</div>
+              {/* Texte */}
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:15, fontWeight:800, color:'#fff', letterSpacing:'-.01em' }}>
+                  Data Quality Score
+                </div>
+                <div style={{ fontSize:11, color:'rgba(232,237,248,.5)', marginTop:3 }}>
+                  Complétude · Exactitude · Cohérence · Fraîcheur · Unicité · Conformité
+                </div>
+              </div>
+              {/* Flèche */}
+              <div style={{ fontSize:20, color:'rgba(150,193,30,.7)', fontWeight:300 }}>›</div>
+            </div>
+          </Link>
+
+          {/* ── Catalogue de Données ── */}
+          <Link href="/dashboard/gouvernance/catalog" style={{ textDecoration:'none', display:'block' }}>
+            <div style={{
+              background:'#fff',
+              borderRadius:16, padding:'20px 28px',
+              display:'flex', alignItems:'center', gap:20,
+              border:'1px solid rgba(31,59,114,.1)',
+              boxShadow:'0 2px 12px rgba(31,59,114,.06)',
+              cursor:'pointer', transition:'transform .15s, box-shadow .15s',
+            }}
+            onMouseEnter={e=>{
+              (e.currentTarget as HTMLDivElement).style.transform='translateY(-2px)'
+              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 8px 24px rgba(31,59,114,.12)'
+            }}
+            onMouseLeave={e=>{
+              (e.currentTarget as HTMLDivElement).style.transform=''
+              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 2px 12px rgba(31,59,114,.06)'
+            }}>
+              <div style={{
+                width:52, height:52, borderRadius:14, flexShrink:0,
+                background:'rgba(8,145,178,.1)', border:'1px solid rgba(8,145,178,.2)',
+                display:'flex', alignItems:'center', justifyContent:'center', fontSize:24,
+              }}>⬡</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:15, fontWeight:800, color:'#1F3B72', letterSpacing:'-.01em' }}>
+                  Catalogue de Données
+                </div>
+                <div style={{ fontSize:11, color:'rgba(31,59,114,.45)', marginTop:3 }}>
+                  Inventaire des tables · Colonnes documentées · Sources & APIs associées
+                </div>
+              </div>
+              <div style={{ fontSize:20, color:'rgba(31,59,114,.3)', fontWeight:300 }}>›</div>
+            </div>
+          </Link>
         </div>
 
         {/* ── Sections Governance bas de page ──────────────────────────────── */}
@@ -1383,13 +1458,18 @@ function SectionFeuilleDeRoute() {
 
   const LEFT_W = 240 // px — colonne labels
 
-  /* ── Calcul des alertes échéances ─────────────────────────────────────── */
-  const deadlineAlerts = PHASES.flatMap(phase =>
-    phase.jalons
-      .filter(j => j.statut !== 'FAIT')
-      .map(j => ({ jalon: j, phase, days: daysUntil(parseDateFin(j.fin)) }))
-      .filter(({ days }) => days >= 0 && days <= 30)
-  ).sort((a, b) => a.days - b.days)
+  /* ── Calcul des alertes échéances (client-only — new Date() non-déterministe côté SSR) ── */
+  type DeadlineAlert = { jalon: (typeof PHASES)[0]['jalons'][0]; phase: (typeof PHASES)[0]; days: number }
+  const [deadlineAlerts, setDeadlineAlerts] = useState<DeadlineAlert[]>([])
+  useEffect(() => {
+    const alerts = PHASES.flatMap(phase =>
+      phase.jalons
+        .filter(j => j.statut !== 'FAIT')
+        .map(j => ({ jalon: j, phase, days: daysUntil(parseDateFin(j.fin)) }))
+        .filter(({ days }) => days >= 0 && days <= 30)
+    ).sort((a, b) => a.days - b.days)
+    setDeadlineAlerts(alerts)
+  }, [])
 
   const critiques = deadlineAlerts.filter(a => a.days <= 15)
   const warnings  = deadlineAlerts.filter(a => a.days > 15)
@@ -1447,7 +1527,7 @@ function SectionFeuilleDeRoute() {
                 )}
               </span>
             </div>
-            <span style={{ fontSize:10, color:'rgba(31,59,114,.35)', fontWeight:500 }}>
+            <span suppressHydrationWarning style={{ fontSize:10, color:'rgba(31,59,114,.35)', fontWeight:500 }}>
               Aujourd'hui : {new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}
             </span>
           </div>

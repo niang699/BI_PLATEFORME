@@ -86,8 +86,10 @@ export async function GET(req: Request) {
 
         const { conds: effC2, p: effP2 } = buildEffConds()
 
+        const { conds: effC3, p: effP3 } = buildEffConds()
+
         const [etaRows, qualiRows, masseEtaRows, masseStatutRows, formThemeRows, formEtaRows, ancTranchesRows, contratRows,
-               hsRubriqueRows, hsEtaRows, hsCatRows] =
+               hsRubriqueRows, hsEtaRows, ancFeminRows, hsCatRows] =
           await Promise.all([
 
             /* Effectif par établissement */
@@ -240,6 +242,41 @@ export async function GET(req: Request) {
               ORDER BY montant DESC
             `, hsP2),
 
+            /* Taux de féminisation par tranche d'ancienneté */
+            safeQuery(client, `
+              SELECT tranche, sort_key,
+                     COUNT(*)::int AS nb_total,
+                     COUNT(*) FILTER (WHERE sexe = 'FEMININ')::int AS nb_femmes,
+                     ROUND(
+                       COUNT(*) FILTER (WHERE sexe = 'FEMININ') * 100.0
+                       / NULLIF(COUNT(*), 0), 1
+                     )::float8 AS taux_feminisation
+              FROM (
+                SELECT DISTINCT d.matricule, p.sexe,
+                  CASE
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 2  THEN '< 2 ans'
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 5  THEN '2–4 ans'
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 10 THEN '5–9 ans'
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 15 THEN '10–14 ans'
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 20 THEN '15–19 ans'
+                    ELSE '≥ 20 ans'
+                  END AS tranche,
+                  CASE
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 2  THEN 0
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 5  THEN 1
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 10 THEN 2
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 15 THEN 3
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_embauche)) < 20 THEN 4
+                    ELSE 5
+                  END AS sort_key
+                FROM dwh_rh.dtm_drht_collaborateur d
+                JOIN dwh_rh.dim_personnel p ON d.matricule = p.matricule
+                WHERE ${effC3.join(' AND ')}
+              ) t
+              GROUP BY tranche, sort_key
+              ORDER BY sort_key
+            `, effP3),
+
             /* HS par catégorie */
             safeQuery(client, `
               SELECT d.categorie,
@@ -264,6 +301,7 @@ export async function GET(req: Request) {
           formation_par_theme:        formThemeRows,
           formation_par_eta:          formEtaRows,
           anciennete_tranches:        ancTranchesRows,
+          anciennete_feminisation:    ancFeminRows,
           repartition_contrat:        contratRows,
           hs_par_rubrique:            hsRubriqueRows,
           hs_par_eta:                 hsEtaRows,

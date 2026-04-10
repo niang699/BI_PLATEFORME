@@ -205,12 +205,30 @@ function pctVar(a: number, b: number): number | null {
   return Math.round((a - b) / b * 1000) / 10
 }
 
+/** Dernière année avec au moins 10 mois de données (= année complète) */
+async function detectAnneeRef(client: import('pg').PoolClient): Promise<number> {
+  try {
+    const r = await client.query(`
+      SELECT annee, COUNT(DISTINCT mois) AS nb_mois
+      FROM dwh_rh.dtm_drht_collaborateur
+      WHERE annee IS NOT NULL
+      GROUP BY annee
+      HAVING COUNT(DISTINCT mois) >= 10
+      ORDER BY annee DESC
+      LIMIT 1
+    `)
+    return r.rows[0]?.annee ?? new Date().getFullYear() - 1
+  } catch {
+    return new Date().getFullYear() - 1
+  }
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const annee    = searchParams.get('annee')    || null
-  const mois     = searchParams.get('mois')     || null
-  const eta      = searchParams.get('eta')      || null
-  const quali    = searchParams.get('quali')    || null
+  let   annee     = searchParams.get('annee')    || null
+  const mois      = searchParams.get('mois')     || null
+  const eta       = searchParams.get('eta')      || null
+  const quali     = searchParams.get('quali')    || null
   const categorie = searchParams.get('categorie') || null
 
   const cacheKey = `rh_kpis:${annee}:${mois}:${eta}:${quali}:${categorie}`
@@ -219,6 +237,12 @@ export async function GET(req: Request) {
     const data = await withCache(cacheKey, async () => {
       const client = await pool.connect()
       try {
+        // Si aucune année fournie → détecter la dernière année complète (≥ 10 mois)
+        if (!annee) {
+          const ref = await detectAnneeRef(client)
+          annee = String(ref)
+        }
+
         const current       = await queryKpis(client, annee, mois, eta, quali, categorie)
         const concentration = await queryConcentration(client, annee, mois, quali, categorie)
 
@@ -247,7 +271,7 @@ export async function GET(req: Request) {
           } catch { /* variation indisponible */ }
         }
 
-        return { ...current, variation, concentration, annee_precedente }
+        return { ...current, variation, concentration, annee_precedente, annee_reference: parseInt(annee) }
       } finally {
         client.release()
       }

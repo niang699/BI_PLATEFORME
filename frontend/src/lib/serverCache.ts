@@ -95,6 +95,9 @@ export async function withCache<T>(
 
 /* ════════════════════════════ clearCache ════════════════════════════════════ */
 
+/** Accès direct au client Redis (pour usages hors withCache). */
+export { getRedis as getRedisClient }
+
 /** Vide le cache mémoire + Redis (tout ou par préfixe). */
 export async function clearCache(prefix?: string): Promise<number> {
   let n = 0

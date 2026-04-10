@@ -1,17 +1,9 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type Role = 'super_admin' | 'admin_metier' | 'analyste' | 'lecteur_dt' | 'releveur'
+export type { Role, User } from './types'
+import type { Role, User } from './types'
 export type DataStatus = 'live' | 'recent' | 'stale'
 export type Category = 'facturation' | 'production' | 'maintenance' | 'rh' | 'sig'
-
-export interface User {
-  id: string
-  name: string
-  email: string
-  role: Role
-  dt?: string
-  avatar: string
-}
 
 export interface Report {
   id: string
@@ -46,16 +38,16 @@ export const USERS: User[] = [
   {
     id: '1',
     name: 'Asta Niang',
-    email: 'a.niang@seneau.sn',
+    email: 'asta.niang@seneau.sn',
     role: 'super_admin',
     avatar: 'AN',
   },
   {
     id: '2',
     name: 'Syaka Sane',
-    email: 's.sane@seneau.sn',
+    email: 'syaka.sane@seneau.sn',
     role: 'admin_metier',
-    dt: 'Direction Regionale Dakar 2',
+    dt: 'Direction Regionale DAKAR 2',
     avatar: 'SS',
   },
   {
@@ -63,7 +55,7 @@ export const USERS: User[] = [
     name: 'Abdou Khadir Gaye',
     email: 'a.gaye@seneau.sn',
     role: 'analyste',
-    dt: 'Direction Regionale Dakar 2',
+    dt: 'Direction Regionale DAKAR 2',
     avatar: 'AG',
   },
   {
@@ -71,15 +63,15 @@ export const USERS: User[] = [
     name: 'Fatou Sarr',
     email: 'f.sarr@seneau.sn',
     role: 'lecteur_dt',
-    dt: 'Direction Regionale Ziguinchor',
+    dt: 'Direction Regionale ZIGUINCHOR',
     avatar: 'FS',
   },
   {
     id: '4',
     name: 'Younes Hachami',
-    email: 'y.hachami@seneau.sn',
+    email: 'younes.hachami@seneau.sn',
     role: 'analyste',
-    dt: 'Direction Regionale Dakar 1',
+    dt: 'Direction Regionale DAKAR 1',
     avatar: 'YH',
   },
   {
@@ -87,7 +79,7 @@ export const USERS: User[] = [
     name: 'Mouhamed Dramé',
     email: 'm.drame@seneau.sn',
     role: 'analyste',
-    dt: 'Direction Regionale Thies 2',
+    dt: 'Direction Regionale THIES 2',
     avatar: 'MD',
   },
   {
@@ -95,16 +87,24 @@ export const USERS: User[] = [
     name: 'Ibra Fall Wadji',
     email: 'i.wadji@seneau.sn',
     role: 'lecteur_dt',
-    dt: 'Direction Regionale Saint Louis',
+    dt: 'Direction Regionale SAINT LOUIS',
     avatar: 'IW',
   },
   {
     id: '7',
     name: 'Mouhamed Rassoul Sarr',
     email: 'm.sarr@seneau.sn',
-    role: 'releveur',
-    dt: 'Direction Regionale Thies 1',
+    role: 'dt',
+    dt: 'Direction Regionale THIES 1',
     avatar: 'MS',
+  },
+  {
+    id: '9',
+    name: 'Ousmane Diallo',
+    email: 'o.diallo@seneau.sn',
+    role: 'lecteur_dt',
+    dt: 'Direction Regionale RUFISQUE',
+    avatar: 'OD',
   },
 ]
 
@@ -169,7 +169,7 @@ export const REPORTS: Report[] = [
     status: 'live',
     pinned: true,
     tags: ['Terrain', 'Tournée', 'Performance'],
-    accessRoles: ['super_admin', 'admin_metier', 'analyste', 'lecteur_dt', 'releveur'],
+    accessRoles: ['super_admin', 'admin_metier', 'analyste', 'lecteur_dt', 'dt'],
   },
   {
     id: 'carte-clients',
@@ -371,9 +371,10 @@ export const ALERTS: Alert[] = [
 // ─── Credentials de test ─────────────────────────────────────────────────────
 
 export const DEMO_CREDENTIALS = [
-  { email: 'a.niang@seneau.sn',   password: 'admin2025',    role: 'Super Admin DSI' },
-  { email: 'y.hachami@seneau.sn', password: 'analyste2025', role: 'Analyste DR Dakar 1' },
-  { email: 'f.sarr@seneau.sn',    password: 'lecteur2025',  role: 'Lecteur DR Ziguinchor' },
+  { email: 'asta.niang@seneau.sn',    password: 'admin2025',    role: 'Super Admin DSI' },
+  { email: 'younes.hachami@seneau.sn',password: 'analyste2025', role: 'Analyste' },
+  { email: 'f.sarr@seneau.sn',        password: 'lecteur2025',  role: 'Lecteur DR Ziguinchor' },
+  { email: 'o.diallo@seneau.sn',      password: 'rufisque2025', role: 'Lecteur DR Rufisque' },
 ]
 
 // ─── Stats globales ──────────────────────────────────────────────────────────
@@ -400,7 +401,7 @@ export const ROLE_META: Record<Role, { label: string; color: string }> = {
   admin_metier: { label: 'Admin Métier',      color: 'bg-sengreen-400 text-white' },
   analyste:     { label: 'Analyste',          color: 'bg-purple-500 text-white'   },
   lecteur_dt:   { label: 'Lecteur DT',        color: 'bg-slate-500 text-white'    },
-  releveur:     { label: 'Releveur',          color: 'bg-amber-500 text-white'    },
+  dt:           { label: 'Directeur DT',      color: 'bg-amber-500 text-white'    },
 }
 
 export function formatRelativeTime(dateStr: string): string {
