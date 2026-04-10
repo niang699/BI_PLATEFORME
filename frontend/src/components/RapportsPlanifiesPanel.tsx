@@ -281,8 +281,7 @@ export default function RapportsPlanifiesPanel() {
           {plans.map(plan => (
             <div key={plan.id} style={{
               background: '#fff', borderRadius: 14, padding: '18px 20px',
-              border: `1px solid ${plan.actif ? 'rgba(31,59,114,.09)' : 'rgba(31,59,114,.05)'}`,
-              boxShadow: plan.actif ? '0 2px 12px rgba(31,59,114,.06)' : 'none',
+              boxShadow: plan.actif ? '0 2px 10px rgba(31,59,114,.10)' : '0 1px 4px rgba(31,59,114,.05)',
               opacity: plan.actif ? 1 : .55,
               transition: 'all .2s',
             }}>

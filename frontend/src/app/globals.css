@@ -16,14 +16,19 @@
     --transition:       .3s cubic-bezier(.4,0,.2,1);
 
     /* Light theme palette */
-    --bg-page:      #f0f2f7;
+    --bg-page:      #f8fafc;
     --bg-card:      #ffffff;
-    --bg-card-hov:  #f8f9fc;
-    --border:       #e4e8f0;
-    --border-focus: rgba(31,59,114,.3);
-    --text-primary: #1a2340;
-    --text-muted:   #5a6a8a;
-    --text-faint:   #9aa3b8;
+    --bg-card-hov:  #f7f9fd;
+    --border:       #eef1f8;
+    --border-focus: rgba(31,59,114,.35);
+    --text-primary: #1F3B72;
+    --text-muted:   rgba(31,59,114,.45);
+    --text-faint:   rgba(31,59,114,.28);
+
+    /* Card */
+    --card-radius:  14px;
+    --card-shadow:  0 2px 10px rgba(31,59,114,.10);
+    --card-shadow-hover: 0 6px 24px rgba(31,59,114,.14);
 
     /* Sidebar garde son thème sombre */
     --sb-border:    rgba(255,255,255,.1);
@@ -814,4 +819,36 @@
 
   /* Pages: padding réduit */
   .topbar { padding: 0 14px; }
+}
+
+/* ── Accessibilité — focus rings globaux ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Inputs et selects : focus ring dans le champ */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 0;
+  border-radius: 10px;
+  box-shadow: 0 0 0 4px rgba(31,59,114,.08);
+}
+
+/* Boutons : pas de ring natif moche */
+button:focus { outline: none; }
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Links */
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

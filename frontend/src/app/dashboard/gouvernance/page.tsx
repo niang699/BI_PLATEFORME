@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import TopBar from '@/components/TopBar'
+import { BarChart2, Building2, Settings2, Calculator, Database, BookOpen, FunctionSquare, Layers, Users, TrendingUp, Tag } from 'lucide-react'
 import { INDICATEURS, SERVICES, GROUPES, type Indicateur } from '@/lib/indicateurs'
 import { PHASES, STATUT_META, roadmapStats, parseGanttDate, GANTT_TOTAL, type RoadmapStatut } from '@/lib/roadmapData'
 
@@ -40,11 +41,11 @@ export default function GouvernancePage() {
     if (active) panelRef.current?.scrollIntoView({ behavior:'smooth', block:'start' })
   }, [active])
 
-  const CARDS: { id:CardId; icon:string; value:string; label:string; sub:string; color:string }[] = [
-    { id:"indicateurs", icon:"◈", value:String(TOTAL),        label:"Indicateurs pilotés",  sub:`${NB_PRIORITE1} priorité 1`,  color:"#96C11E" },
-    { id:"services",    icon:"⬡", value:String(NB_SERVICES),  label:"Services couverts",     sub:"13 directions métier",        color:"#0891B2" },
-    { id:"processus",   icon:"◎", value:String(NB_PROCESSUS), label:"Processus qualité",     sub:"Mgt · Réal · Support",        color:"#8b5cf6" },
-    { id:"calcules",    icon:"∑", value:String(NB_CALCULES),  label:"Indicateurs calculés",  sub:`${TOTAL-NB_CALCULES} manuels`, color:"#D97706" },
+  const CARDS: { id:CardId; icon:React.ReactNode; value:string; label:string; sub:string; color:string }[] = [
+    { id:"indicateurs", icon:<BarChart2  size={17}/>, value:String(TOTAL),        label:"Indicateurs pilotés",  sub:`${NB_PRIORITE1} priorité 1`,   color:"#96C11E" },
+    { id:"services",    icon:<Building2  size={17}/>, value:String(NB_SERVICES),  label:"Services couverts",    sub:"13 directions métier",          color:"#0891B2" },
+    { id:"processus",   icon:<Settings2  size={17}/>, value:String(NB_PROCESSUS), label:"Processus qualité",    sub:"Mgt · Réal · Support",          color:"#8b5cf6" },
+    { id:"calcules",    icon:<Calculator size={17}/>, value:String(NB_CALCULES),  label:"Indicateurs calculés", sub:`${TOTAL-NB_CALCULES} manuels`,  color:"#D97706" },
   ]
 
   return (
@@ -64,10 +65,9 @@ export default function GouvernancePage() {
             {/* Titre */}
             <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24 }}>
               <div style={{ width:44, height:44, borderRadius:12, flexShrink:0,
-                background:'#EEF2FF', border:'1px solid #E0E7FF',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:20 }}>
-                <span style={{ color:'#1F3B72' }}>⬡</span>
+                background:'#EEF2FF',
+                display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <Database size={20} color="#1F3B72" strokeWidth={1.8} />
               </div>
               <div>
                 <h1 style={{ color:'#1F3B72', fontSize:20, fontWeight:800,
@@ -151,9 +151,9 @@ export default function GouvernancePage() {
               {/* Icône */}
               <div style={{
                 width:52, height:52, borderRadius:14, flexShrink:0,
-                background:'rgba(150,193,30,.15)', border:'1px solid rgba(150,193,30,.25)',
-                display:'flex', alignItems:'center', justifyContent:'center', fontSize:24,
-              }}>⬡</div>
+                background:'rgba(150,193,30,.15)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}><BarChart2 size={24} color="#96C11E" strokeWidth={1.8} /></div>
               {/* Texte */}
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:15, fontWeight:800, color:'#fff', letterSpacing:'-.01em' }}>
@@ -172,25 +172,24 @@ export default function GouvernancePage() {
           <Link href="/dashboard/gouvernance/catalog" style={{ textDecoration:'none', display:'block' }}>
             <div style={{
               background:'#fff',
-              borderRadius:16, padding:'20px 28px',
+              borderRadius:14, padding:'20px 28px',
               display:'flex', alignItems:'center', gap:20,
-              border:'1px solid rgba(31,59,114,.1)',
-              boxShadow:'0 2px 12px rgba(31,59,114,.06)',
+              boxShadow:'0 2px 10px rgba(31,59,114,.10)',
               cursor:'pointer', transition:'transform .15s, box-shadow .15s',
             }}
             onMouseEnter={e=>{
               (e.currentTarget as HTMLDivElement).style.transform='translateY(-2px)'
-              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 8px 24px rgba(31,59,114,.12)'
+              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 6px 24px rgba(31,59,114,.14)'
             }}
             onMouseLeave={e=>{
               (e.currentTarget as HTMLDivElement).style.transform=''
-              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 2px 12px rgba(31,59,114,.06)'
+              ;(e.currentTarget as HTMLDivElement).style.boxShadow='0 2px 10px rgba(31,59,114,.10)'
             }}>
               <div style={{
                 width:52, height:52, borderRadius:14, flexShrink:0,
-                background:'rgba(8,145,178,.1)', border:'1px solid rgba(8,145,178,.2)',
-                display:'flex', alignItems:'center', justifyContent:'center', fontSize:24,
-              }}>⬡</div>
+                background:'rgba(8,145,178,.10)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}><BookOpen size={24} color="#0891B2" strokeWidth={1.8} /></div>
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:15, fontWeight:800, color:'#1F3B72', letterSpacing:'-.01em' }}>
                   Catalogue de Données
@@ -229,10 +228,9 @@ export default function GouvernancePage() {
    KPI CARD — ultra-simple, sophistiqué, net
 ════════════════════════════════════════════════════════════════════════════ */
 function KpiCard({ icon,value,label,sub,color,active,onClick }:{
-  icon:string;value:string;label:string;sub:string;color:string;active:boolean;onClick:()=>void
+  icon:React.ReactNode;value:string;label:string;sub:string;color:string;active:boolean;onClick:()=>void
 }) {
   const [hov,setHov]=useState(false)
-  const on = active || hov
   return (
     <div onClick={onClick}
       onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
@@ -255,8 +253,7 @@ function KpiCard({ icon,value,label,sub,color,active,onClick }:{
           width:38, height:38, borderRadius:10,
           background: active ? `${color}20` : `${color}0f`,
           display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize:17, transition:'all .22s',
-          color: color,
+          transition:'all .22s', color,
         }}>{icon}</div>
         <span style={{
           fontSize:9, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase',
@@ -1017,13 +1014,13 @@ function PanelContent({ ind,onClose }:{ ind:Indicateur; onClose:()=>void }) {
       {/* Corps */}
       <div style={{ padding:'20px 24px',display:'flex',flexDirection:'column',gap:20,flex:1 }}>
 
-        <PS title="Formule de calcul" icon="∑">
+        <PS title="Formule de calcul" icon={<FunctionSquare size={13}/>}>
           <div style={{ fontFamily:'monospace',fontSize:12,background:'rgba(31,59,114,.05)',
             padding:'12px 16px',borderRadius:10,color:'#1F3B72',border:'1px solid rgba(31,59,114,.12)',
             fontWeight:600,lineHeight:1.6 }}>{ind.mode_calcul}</div>
         </PS>
 
-        <PS title="Processus & Périmètre" icon="⬡">
+        <PS title="Processus & Périmètre" icon={<Layers size={13}/>}>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
             <IB label="Groupe processus"  value={ind.groupe_nom} />
             <IB label="Type processus"    value={ind.groupe_type}     badge={GT_COLORS[ind.groupe_type]} />
@@ -1032,7 +1029,7 @@ function PanelContent({ ind,onClose }:{ ind:Indicateur; onClose:()=>void }) {
           </div>
         </PS>
 
-        <PS title="Pilotage & Responsabilités" icon="◎">
+        <PS title="Pilotage & Responsabilités" icon={<Users size={13}/>}>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
             <IB label="Pilote processus"    value={ind.pilote_processus} />
             <IB label="Resp. collecte"      value={ind.responsable_collecte} />
@@ -1041,7 +1038,7 @@ function PanelContent({ ind,onClose }:{ ind:Indicateur; onClose:()=>void }) {
           </div>
         </PS>
 
-        <PS title="Évolution" icon="◈">
+        <PS title="Évolution" icon={<TrendingUp size={13}/>}>
           <div style={{ display:'flex',gap:16,alignItems:'center',marginBottom:ind.objectif_cible.startsWith('>')?14:0 }}>
             <div>
               <div style={{ fontSize:9,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4 }}>Période préc.</div>
@@ -1073,7 +1070,7 @@ function PanelContent({ ind,onClose }:{ ind:Indicateur; onClose:()=>void }) {
         </PS>
 
         {ind.tags.length>0 && (
-          <PS title="Étiquettes" icon="◷">
+          <PS title="Étiquettes" icon={<Tag size={13}/>}>
             <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
               {ind.tags.map(tag=>(
                 <span key={tag} style={{ fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,
@@ -1087,11 +1084,11 @@ function PanelContent({ ind,onClose }:{ ind:Indicateur; onClose:()=>void }) {
   )
 }
 
-function PS({ title,icon,children }:{ title:string;icon:string;children:React.ReactNode }) {
+function PS({ title,icon,children }:{ title:string;icon:React.ReactNode;children:React.ReactNode }) {
   return (
     <div>
       <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:10 }}>
-        <span style={{ fontSize:13,color:'#1F3B72' }}>{icon}</span>
+        <span style={{ color:'#1F3B72',display:'flex',alignItems:'center' }}>{icon}</span>
         <span style={{ fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--text-muted)' }}>{title}</span>
         <div style={{ flex:1,height:1,background:'var(--border)' }} />
       </div>

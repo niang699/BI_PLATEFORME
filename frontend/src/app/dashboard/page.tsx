@@ -13,12 +13,12 @@ const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'sig',         label: 'Cartographie' },
 ]
 
-const NAVY  = '#1F3B72'
-const GREEN = '#96C11E'
-const RED   = '#E84040'
-const BG    = '#F7F8FC'
-const CARD  = '#FFFFFF'
-const BORDER = '#ECEEF6'
+const NAVY   = '#1F3B72'
+const GREEN  = '#96C11E'
+const RED    = '#E84040'
+const BG     = '#f8fafc'
+const CARD   = '#ffffff'
+const SHADOW = '0 2px 10px rgba(31,59,114,.10)'
 
 const F_TITLE = "'Barlow Semi Condensed', sans-serif"
 const F_BODY  = "'Nunito', sans-serif"
@@ -45,21 +45,19 @@ function PinnedCard({ report }: { report: typeof REPORTS[0] }) {
   return (
     <a href={href} style={{ textDecoration: 'none', display: 'block' }}>
       <div style={{
-        background: CARD, borderRadius: 12, border: `1px solid ${BORDER}`,
+        background: CARD, borderRadius: 14, boxShadow: SHADOW,
         padding: '18px 18px 14px',
         transition: 'all .18s', height: '100%', boxSizing: 'border-box' as const,
         display: 'flex', flexDirection: 'column', gap: 0,
       }}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLDivElement
-        el.style.boxShadow = '0 10px 32px rgba(31,59,114,.09)'
-        el.style.borderColor = 'rgba(31,59,114,.15)'
+        el.style.boxShadow = '0 6px 24px rgba(31,59,114,.14)'
         el.style.transform = 'translateY(-2px)'
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLDivElement
-        el.style.boxShadow = 'none'
-        el.style.borderColor = BORDER
+        el.style.boxShadow = SHADOW
         el.style.transform = 'none'
       }}
       >
@@ -131,7 +129,7 @@ export default function HomePage() {
 
   const card: React.CSSProperties = {
     background: CARD, borderRadius: 14, padding: '22px 24px',
-    border: `1px solid ${BORDER}`,
+    boxShadow: SHADOW,
   }
 
   return (
@@ -159,7 +157,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div style={{ width: 1, height: 36, background: BORDER, flexShrink: 0 }} />
+          <div style={{ width: 1, height: 36, background: 'rgba(31,59,114,.1)', flexShrink: 0 }} />
 
           {/* KPIs */}
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -245,20 +243,16 @@ export default function HomePage() {
                       <div style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                         gap: 8, padding: '18px 10px', borderRadius: 12, textAlign: 'center',
-                        background: BG, border: `1px solid ${BORDER}`, transition: 'all .18s',
+                        background: CARD, boxShadow: SHADOW, transition: 'all .18s',
                       }}
                       onMouseEnter={e => {
                         const el = e.currentTarget as HTMLDivElement
-                        el.style.background = '#fff'
-                        el.style.borderColor = 'rgba(31,59,114,.15)'
-                        el.style.boxShadow = '0 4px 16px rgba(31,59,114,.07)'
+                        el.style.boxShadow = '0 6px 24px rgba(31,59,114,.14)'
                         el.style.transform = 'translateY(-1px)'
                       }}
                       onMouseLeave={e => {
                         const el = e.currentTarget as HTMLDivElement
-                        el.style.background = BG
-                        el.style.borderColor = BORDER
-                        el.style.boxShadow = 'none'
+                        el.style.boxShadow = SHADOW
                         el.style.transform = 'none'
                       }}
                       >
@@ -279,12 +273,11 @@ export default function HomePage() {
             {/* Hub IA */}
             <div style={{
               ...card, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
-              borderLeft: `3px solid ${GREEN}`,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
                 <div style={{
                   width: 42, height: 42, borderRadius: 11, flexShrink: 0, overflow: 'hidden',
-                  background: BG, border: `1px solid ${BORDER}`,
+                  background: 'rgba(150,193,30,.1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <img src="/jambar_ia_simple_icon.svg" alt="JAMBAR"
@@ -313,7 +306,7 @@ export default function HomePage() {
                 <Link href="/viewer/score360" style={{
                   display: 'inline-flex', alignItems: 'center', padding: '9px 18px',
                   borderRadius: 10, textDecoration: 'none',
-                  background: BG, border: `1px solid ${BORDER}`,
+                  background: '#f0f4fb',
                   color: 'rgba(31,59,114,.6)', fontSize: 12, fontWeight: 600,
                   fontFamily: F_BODY,
                 }}>Score 360°</Link>

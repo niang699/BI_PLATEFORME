@@ -967,10 +967,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(31,59,114,.2)', fontWeight: 500, paddingTop: 4, fontFamily: F_BODY }}>
-          © 2025 SEN&#39;EAU &nbsp;·&nbsp; <strong style={{ color: 'rgba(31,59,114,.35)' }}>Asta Niang</strong> — Data Engineer
-        </p>
-
         <style>{`
           @keyframes spin    { to { transform: rotate(360deg); } }
           @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }

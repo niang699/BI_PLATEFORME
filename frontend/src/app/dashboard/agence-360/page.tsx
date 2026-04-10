@@ -159,8 +159,7 @@ function KpiCard({
       background: '#fff',
       borderRadius: 14,
       padding: '16px 20px',
-      boxShadow: '0 2px 12px rgba(31,59,114,.07)',
-      border: '1px solid #e8edf5',
+      boxShadow: '0 2px 10px rgba(31,59,114,.10)',
       flex: '1 1 160px',
       minWidth: 150,
       display: 'flex',
@@ -716,8 +715,7 @@ export default function AgencePage() {
 
   const card: React.CSSProperties = {
     background: '#fff', borderRadius: 14,
-    boxShadow: '0 2px 12px rgba(31,59,114,.07)',
-    border: '1px solid #e8edf5', overflow: 'hidden',
+    boxShadow: '0 2px 10px rgba(31,59,114,.10)', overflow: 'hidden',
   }
 
   return (
@@ -1039,7 +1037,8 @@ export default function AgencePage() {
 
         {/* ══ NAVIGATION RAPIDE ═════════════════════════════════════════ */}
         <div style={{
-          background: '#fff', borderRadius: 10, border: '1px solid #e8edf5',
+          background: '#fff', borderRadius: 10,
+          boxShadow: '0 2px 10px rgba(31,59,114,.10)',
           padding: '11px 22px',
           display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap',
         }}>

@@ -440,8 +440,7 @@ function Card({
   return (
     <div style={{
       background: '#fff', borderRadius: 14,
-      border: '1px solid rgba(31,59,114,.09)',
-      boxShadow: '0 2px 10px rgba(31,59,114,.05)',
+      boxShadow: '0 2px 10px rgba(31,59,114,.10)',
       overflow: 'hidden',
     }}>
       <div style={{

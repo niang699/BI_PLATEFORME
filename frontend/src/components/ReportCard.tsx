@@ -26,13 +26,14 @@ export default function ReportCard({ report, compact = false }: Props) {
       <Link href={href} style={{ textDecoration: 'none', display: 'block' }}
         onClick={disabled ? e => e.preventDefault() : undefined}>
         <div style={{
-          background: '#fff', borderRadius: 12, border: '1px solid #ECEEF6',
+          background: '#fff', borderRadius: 12,
+          boxShadow: '0 1px 6px rgba(31,59,114,.07)',
           display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
           transition: 'all .18s', cursor: disabled ? 'default' : 'pointer',
           fontFamily: F_BODY,
         }}
-        onMouseEnter={e => { if (!disabled) { const d = e.currentTarget as HTMLDivElement; d.style.borderColor = 'rgba(31,59,114,.18)'; d.style.boxShadow = '0 4px 14px rgba(31,59,114,.07)' } }}
-        onMouseLeave={e => { const d = e.currentTarget as HTMLDivElement; d.style.borderColor = '#ECEEF6'; d.style.boxShadow = 'none' }}
+        onMouseEnter={e => { if (!disabled) { const d = e.currentTarget as HTMLDivElement; d.style.boxShadow = '0 4px 14px rgba(31,59,114,.10)' } }}
+        onMouseLeave={e => { const d = e.currentTarget as HTMLDivElement; d.style.boxShadow = '0 1px 6px rgba(31,59,114,.07)' }}
         >
           {/* Dot statut */}
           <span style={{
@@ -48,7 +49,7 @@ export default function ReportCard({ report, compact = false }: Props) {
             </div>
           </div>
           {disabled && (
-            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(31,59,114,.35)', border: '1px solid #ECEEF6', borderRadius: 6, padding: '2px 6px' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(31,59,114,.35)', background: '#f4f6fb', borderRadius: 6, padding: '2px 6px' }}>
               Bientôt
             </span>
           )}
@@ -65,22 +66,20 @@ export default function ReportCard({ report, compact = false }: Props) {
 
       <div style={{
         background: '#fff', borderRadius: 14, padding: '22px',
-        border: '1px solid #ECEEF6',
+        boxShadow: '0 2px 10px rgba(31,59,114,.10)',
         transition: 'all .2s', cursor: disabled ? 'default' : 'pointer',
         height: '100%', boxSizing: 'border-box',
       }}
       onMouseEnter={e => {
         if (!disabled) {
           const d = e.currentTarget as HTMLDivElement
-          d.style.boxShadow = '0 10px 32px rgba(31,59,114,.10)'
-          d.style.borderColor = 'rgba(31,59,114,.16)'
+          d.style.boxShadow = '0 10px 32px rgba(31,59,114,.14)'
           d.style.transform = 'translateY(-2px)'
         }
       }}
       onMouseLeave={e => {
         const d = e.currentTarget as HTMLDivElement
-        d.style.boxShadow = 'none'
-        d.style.borderColor = '#ECEEF6'
+        d.style.boxShadow = '0 2px 10px rgba(31,59,114,.10)'
         d.style.transform = 'none'
       }}
       >
@@ -124,7 +123,6 @@ export default function ReportCard({ report, compact = false }: Props) {
               padding: '3px 10px', borderRadius: 99,
               fontSize: 10, fontWeight: 600,
               background: '#F4F6FB', color: 'rgba(31,59,114,.45)',
-              border: '1px solid #ECEEF6',
             }}>
               {tag}
             </span>
@@ -150,8 +148,8 @@ export default function ReportCard({ report, compact = false }: Props) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span style={{
-              padding: '8px 18px', borderRadius: 99, border: '1px solid #ECEEF6',
-              background: '#fff', fontSize: 11, fontWeight: 700,
+              padding: '8px 18px', borderRadius: 99,
+              background: '#f4f6fb', fontSize: 11, fontWeight: 700,
               color: 'rgba(31,59,114,.45)',
             }}>
               Bientôt disponible
