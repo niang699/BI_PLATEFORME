@@ -18,10 +18,15 @@ function createPool(): Pool {
     database: process.env.DB_ODS_NAME     ?? 'sen_ods',
     user:     process.env.DB_ODS_USER     ?? 'postgres',
     password: process.env.DB_ODS_PASSWORD ?? 'mysecretpassword',
-    max: 5,
-    idleTimeoutMillis:     30_000,
-    connectionTimeoutMillis: 8_000,
-    statement_timeout:     120_000, // 120 s — requêtes analytiques lourdes
+    // Pool agrandi : serveur partagé avec beaucoup de services, requêtes analytiques lourdes
+    max:                     15,
+    min:                      2,      // garder 2 connexions chaudes en permanence
+    idleTimeoutMillis:       60_000,  // libère après 60s d'inactivité
+    connectionTimeoutMillis: 20_000,  // 20s pour obtenir une connexion du pool
+    statement_timeout:      120_000,  // 120s — requêtes analytiques lourdes (UNION ALL x5)
+    // Keepalive : évite les déconnexions silencieuses par le firewall/NAT
+    keepAlive:               true,
+    keepAliveInitialDelayMillis: 10_000,
   })
 }
 

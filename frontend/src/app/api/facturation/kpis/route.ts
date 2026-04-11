@@ -13,7 +13,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/dbOds'
 import { parseFilters, buildCteQuery } from '@/lib/rapportFilters'
-import { withCache, TTL_1H } from '@/lib/serverCache'
+import { withCache } from '@/lib/serverCache'
+
+// Données journalières → cache 4h (réduit les hits DB sur serveur partagé chargé)
+const TTL_4H = 4 * 60 * 60 * 1000
 
 const OBJECTIF_TAUX = 98.5
 
@@ -241,7 +244,7 @@ async function fetchData(qs: string) {
 export async function GET(req: NextRequest) {
   const qs = req.nextUrl.searchParams.toString()
   try {
-    const data = await withCache(`facturation_kpis:${qs}`, () => fetchData(qs), TTL_1H)
+    const data = await withCache(`facturation_kpis:${qs}`, () => fetchData(qs), TTL_4H)
     return NextResponse.json(data)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
