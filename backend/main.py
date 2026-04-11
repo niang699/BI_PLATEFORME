@@ -9,28 +9,54 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from database import get_db, engine, Base
 from models import User, Report, Alert
 from auth import (
     verify_password, create_token, hash_password,
     get_current_user, require_admin,
 )
-from cache import get_redis, cache_stats
+from cache import get_redis, cache_delete
 from routes.kpi import router as kpi_router
 
-# ── Lifespan : init Redis au démarrage ───────────────────────────────────────
+# ── Job quotidien 07h00 — invalidation cache KPIs ────────────────────────────
+
+def invalidate_kpi_cache():
+    """Vide les clés seneau:* à 07h00 chaque matin (après mise à jour des vues)."""
+    nb = cache_delete("seneau:*")
+    print(f"[Scheduler] {datetime.now().strftime('%Y-%m-%d %H:%M')} — Cache KPIs invalidé : {nb} clé(s) supprimée(s)")
+
+# ── Lifespan : init Redis + scheduler au démarrage ───────────────────────────
+
+scheduler = AsyncIOScheduler(timezone="Africa/Dakar")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Démarrage
     Base.metadata.create_all(bind=engine)
+
+    # Redis
     r = get_redis()
     if r:
-        print("✓ Redis connecté —", "seneau:*", "prêt")
+        print("✓ Redis connecté — cache seneau:* prêt")
     else:
         print("⚠ Redis indisponible — mode sans cache (PostgreSQL direct)")
+
+    # Scheduler — invalidation cache tous les jours à 07h00 (heure Dakar)
+    scheduler.add_job(
+        invalidate_kpi_cache,
+        CronTrigger(hour=7, minute=0),
+        id="invalidate_kpi_cache",
+        replace_existing=True,
+    )
+    scheduler.start()
+    print("✓ Scheduler démarré — invalidation cache KPIs tous les jours à 07h00 (Africa/Dakar)")
+
     yield
-    # Arrêt (rien à faire)
+
+    # Arrêt propre
+    scheduler.shutdown(wait=False)
 
 app = FastAPI(
     title="SEN'EAU BI Platform API",

@@ -9,3 +9,4 @@ python-multipart==0.0.9
 pydantic==2.8.2
 alembic==1.13.2
 redis==5.0.8
+apscheduler==3.10.4
