@@ -8,21 +8,40 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from contextlib import asynccontextmanager
 from database import get_db, engine, Base
 from models import User, Report, Alert
 from auth import (
     verify_password, create_token, hash_password,
     get_current_user, require_admin,
 )
+from cache import get_redis, cache_stats
+from routes.kpi import router as kpi_router
 
-# Créer les tables au démarrage
-Base.metadata.create_all(bind=engine)
+# ── Lifespan : init Redis au démarrage ───────────────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Démarrage
+    Base.metadata.create_all(bind=engine)
+    r = get_redis()
+    if r:
+        print("✓ Redis connecté —", "seneau:*", "prêt")
+    else:
+        print("⚠ Redis indisponible — mode sans cache (PostgreSQL direct)")
+    yield
+    # Arrêt (rien à faire)
 
 app = FastAPI(
     title="SEN'EAU BI Platform API",
     description="API de gestion du portail BI SEN'EAU",
     version="1.0.0",
+    lifespan=lifespan,
 )
+
+# Inclure le router KPI (avec cache Redis)
+app.include_router(kpi_router)
+
 
 app.add_middleware(
     CORSMiddleware,
