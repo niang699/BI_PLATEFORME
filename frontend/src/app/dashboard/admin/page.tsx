@@ -178,6 +178,21 @@ const CAT_META: Record<string, { label: string; color: string; bg: string }> = {
   rh:          { label: 'Ressources Hum.', color: '#E84040', bg: 'rgba(232,64,64,.06)'  },
 }
 
+/* ── Pages sidebar (pour la matrice nav) ──────────────────────────────────── */
+const NAV_PAGES: { id: string; label: string; section: 'Navigation' | 'Accès rapide'; defaultRoles: Role[] }[] = [
+  { id: 'nav_accueil',       label: 'Accueil',          section: 'Navigation',    defaultRoles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'] },
+  { id: 'nav_rapports',      label: 'Rapports',         section: 'Navigation',    defaultRoles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'] },
+  { id: 'nav_selfservice',   label: 'Self-Service BI',  section: 'Navigation',    defaultRoles: ['super_admin','admin_metier','analyste'] },
+  { id: 'nav_hubia',         label: 'Hub IA JAMBAR',    section: 'Navigation',    defaultRoles: ['super_admin','admin_metier','analyste'] },
+  { id: 'nav_agence360',     label: 'Mon Agence 360',   section: 'Navigation',    defaultRoles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'] },
+  { id: 'nav_gouvernance',   label: 'Data Gouvernance', section: 'Navigation',    defaultRoles: ['super_admin','admin_metier','analyste'] },
+  { id: 'nav_alertes',       label: 'Alertes',          section: 'Navigation',    defaultRoles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'] },
+  { id: 'nav_admin',         label: 'Administration',   section: 'Navigation',    defaultRoles: ['super_admin','admin_metier'] },
+  { id: 'quick_facturation', label: 'Facturation',      section: 'Accès rapide',  defaultRoles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'] },
+  { id: 'quick_score360',    label: 'Score 360°',       section: 'Accès rapide',  defaultRoles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'] },
+  { id: 'quick_releveurs',   label: 'Releveurs',        section: 'Accès rapide',  defaultRoles: ['super_admin','admin_metier','analyste','lecteur_dt','dt'] },
+]
+
 /* ── Shared styles ─────────────────────────────────────────────────────────── */
 const card = { background: '#fff', borderRadius: 14, boxShadow: '0 2px 10px rgba(31,59,114,.10)' } as const
 
@@ -289,6 +304,14 @@ export default function AdminPage() {
   const [saveOk,       setSaveOk]       = useState(false)
   const [saveErr,      setSaveErr]      = useState<string | null>(null)
 
+  const [navMatrix, setNavMatrix] = useState<Record<string, Role[]>>(() =>
+    Object.fromEntries(NAV_PAGES.map(p => [p.id, [...p.defaultRoles]]))
+  )
+  const [baseNavMatrix] = useState<Record<string, Role[]>>(() =>
+    Object.fromEntries(NAV_PAGES.map(p => [p.id, [...p.defaultRoles]]))
+  )
+  const [navDirty, setNavDirty] = useState(false)
+
   const [cacheStatus, setCacheStatus] = useState<CacheStatus>('idle')
   const [cacheResult, setCacheResult] = useState<{ cleared: number; lastAt: string } | null>(null)
   const [cacheError,  setCacheError]  = useState<string | null>(null)
@@ -340,6 +363,15 @@ export default function AdminPage() {
     setMatrixDirty(true); setSaveOk(false); setSaveErr(null)
   }
 
+  function toggleNavCell(pageId: string, role: Role) {
+    if (currentUser?.role !== 'super_admin') return
+    setNavMatrix(prev => {
+      const roles = prev[pageId] ?? []
+      return { ...prev, [pageId]: roles.includes(role) ? roles.filter(r => r !== role) : [...roles, role] }
+    })
+    setNavDirty(true)
+  }
+
   async function handleSaveMatrix() {
     setSavingMatrix(true); setSaveErr(null)
     try {
@@ -386,6 +418,12 @@ export default function AdminPage() {
     const curr = (accessMatrix[r.id] ?? []).slice().sort().join(',')
     return acc + (orig !== curr ? 1 : 0)
   }, 0)
+  const countNavChanges = NAV_PAGES.reduce((acc, p) => {
+    const orig = (baseNavMatrix[p.id] ?? []).slice().sort().join(',')
+    const curr = (navMatrix[p.id] ?? []).slice().sort().join(',')
+    return acc + (orig !== curr ? 1 : 0)
+  }, 0)
+  const totalDirtyCount = countChanges + countNavChanges
   const reportsByCategory = REPORTS.reduce<Record<string, typeof REPORTS>>((acc, r) => {
     if (!acc[r.category]) acc[r.category] = []; acc[r.category].push(r); return acc
   }, {})
@@ -519,7 +557,7 @@ export default function AdminPage() {
           <div style={{ display: 'flex', marginTop: 20, gap: 2 }}>
             {TABS.map(tab => {
               const active = activeTab === tab.key
-              const badge  = tab.key === 'matrice' && matrixDirty ? countChanges : 0
+              const badge  = tab.key === 'matrice' && (matrixDirty || navDirty) ? totalDirtyCount : 0
               const color  = tab.key === 'utilisateurs' ? C_NAVY : tab.key === 'matrice' ? '#7C3AED' : tab.key === 'rapports' ? '#0891B2' : '#D97706'
               return (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
@@ -673,13 +711,13 @@ export default function AdminPage() {
         {activeTab === 'matrice' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            {matrixDirty && (
+            {(matrixDirty || navDirty) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderRadius: 14, background: '#fffbeb', boxShadow: '0 4px 20px rgba(217,119,6,.10)' }}>
                 <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600, flex: 1 }}>
-                  <strong>{countChanges} rapport{countChanges > 1 ? 's' : ''}</strong> modifié{countChanges > 1 ? 's' : ''} — non sauvegardé
+                  <strong>{totalDirtyCount} élément{totalDirtyCount > 1 ? 's' : ''}</strong> modifié{totalDirtyCount > 1 ? 's' : ''} — non sauvegardé
                 </span>
                 {saveErr && <span style={{ fontSize: 11, color: '#DC2626' }}>{saveErr}</span>}
-                <button onClick={() => { setAccessMatrix({ ...baseMatrix }); setMatrixDirty(false); setSaveErr(null) }} style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'rgba(217,119,6,.12)', color: '#92400e', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: F_BODY }}>Annuler</button>
+                <button onClick={() => { setAccessMatrix({ ...baseMatrix }); setMatrixDirty(false); setNavMatrix({ ...baseNavMatrix }); setNavDirty(false); setSaveErr(null) }} style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'rgba(217,119,6,.12)', color: '#92400e', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: F_BODY }}>Annuler</button>
                 <button onClick={handleSaveMatrix} disabled={savingMatrix} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 16px', borderRadius: 7, border: 'none', background: '#D97706', color: '#fff', fontSize: 11, fontWeight: 700, cursor: savingMatrix ? 'not-allowed' : 'pointer', fontFamily: F_BODY, opacity: savingMatrix ? .7 : 1 }}>
                   <Save size={12} />
                   {savingMatrix ? 'Sauvegarde…' : 'Sauvegarder'}
@@ -794,6 +832,88 @@ export default function AdminPage() {
                 </table>
               </div>
             </div>
+
+            {/* Matrice navigation */}
+            <div style={{ ...card, overflow: 'hidden' }}>
+              <SectionHeader
+                label="Matrice d'accès — Navigation × Rôles"
+                right={isSuperAdmin
+                  ? <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,.08)', padding: '3px 10px', borderRadius: 6 }}>Mode édition</span>
+                  : <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.35)', fontWeight: 600 }}><Lock size={10} />Lecture seule</span>}
+              />
+              {isSuperAdmin && (
+                <div style={{ padding: '9px 22px 10px', background: '#f7f9fd', fontSize: 11, color: 'rgba(31,59,114,.45)' }}>
+                  Cliquez sur une cellule pour accorder ou révoquer l&apos;accès à un onglet de la navigation pour un rôle donné.
+                </div>
+              )}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...TH, minWidth: 200 }}>Page / Onglet</th>
+                      <th style={{ ...TH, textAlign: 'center', minWidth: 100 }}>Section</th>
+                      {ROLES_DEF.map(role => (
+                        <th key={role.key} style={{ ...TH, textAlign: 'center', minWidth: 80, color: role.color }}>{role.shortLabel}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {NAV_PAGES.map(page => {
+                      const curRoles   = navMatrix[page.id] ?? []
+                      const wasChanged = curRoles.slice().sort().join(',') !== (baseNavMatrix[page.id] ?? []).slice().sort().join(',')
+                      const sectionColor = page.section === 'Navigation' ? C_NAVY : '#7C3AED'
+                      return (
+                        <tr key={page.id}
+                          style={{ background: wasChanged ? '#fffbeb' : 'transparent' }}
+                          onMouseEnter={e => { if (!wasChanged) e.currentTarget.style.background = '#f8fafc' }}
+                          onMouseLeave={e => { if (!wasChanged) e.currentTarget.style.background = 'transparent' }}
+                        >
+                          <td style={{ ...TD, fontWeight: 700, color: C_NAVY }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {wasChanged && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#D97706', flexShrink: 0 }} />}
+                              {page.label}
+                            </div>
+                          </td>
+                          <td style={{ ...TD, textAlign: 'center' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 5, fontSize: 9, fontWeight: 700, color: sectionColor, background: `${sectionColor}08` }}>
+                              {page.section}
+                            </span>
+                          </td>
+                          {ROLES_DEF.map(role => {
+                            const ok      = curRoles.includes(role.key)
+                            const changed = ok !== (baseNavMatrix[page.id] ?? []).includes(role.key)
+                            return (
+                              <td key={role.key} style={{ ...TD, textAlign: 'center', padding: '8px' }}>
+                                <button
+                                  onClick={() => toggleNavCell(page.id, role.key)}
+                                  disabled={!isSuperAdmin}
+                                  title={isSuperAdmin ? (ok ? `Révoquer ${role.label}` : `Accorder ${role.label}`) : 'Super Admin uniquement'}
+                                  style={{
+                                    width: 30, height: 30, borderRadius: 8,
+                                    border: changed ? `2px solid ${ok ? '#059669' : '#dc2626'}` : '2px solid transparent',
+                                    cursor: isSuperAdmin ? 'pointer' : 'default',
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    background: ok ? role.bg : 'transparent',
+                                    transition: 'all .15s',
+                                  }}
+                                  onMouseEnter={e => { if (isSuperAdmin) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.15)' }}
+                                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)' }}
+                                >
+                                  {ok
+                                    ? <Check size={13} style={{ color: role.color }} />
+                                    : <span style={{ color: '#d1d5db', fontSize: 13, fontWeight: 700 }}>—</span>}
+                                </button>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         )}
 

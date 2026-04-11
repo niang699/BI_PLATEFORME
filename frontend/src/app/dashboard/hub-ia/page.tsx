@@ -5,6 +5,7 @@ import { INDICATEURS, SERVICES, GROUPES } from '@/lib/indicateurs'
 import { getCurrentUser } from '@/lib/auth'
 import Agent360 from './Agent360'
 import SelfServiceReport from './SelfServiceReport'
+import { BarChart2, BookOpen, FileText } from 'lucide-react'
 
 /* ── KPIs injectés dans le contexte ─────────────────────────────────────── */
 const TOTAL    = INDICATEURS.length
@@ -73,7 +74,7 @@ type ReportData = {
 /* ── Export PDF ──────────────────────────────────────────────────────────── */
 function exportReport(data: ReportData) {
   const statusColor = (s: string) => s === 'ok' ? '#16a34a' : s === 'warning' ? '#d97706' : '#dc2626'
-  const statusLabel = (s: string) => s === 'ok' ? '✅' : s === 'warning' ? '⚠️' : '🔴'
+  const statusLabel = (s: string) => s === 'ok' ? '✓' : s === 'warning' ? '!' : '✗'
   const kpiPct = (v: string) => Math.min(parseFloat(v.replace(',', '.')) || 0, 100)
 
   const kpiHtml = data.kpis.map(k => `
@@ -138,7 +139,7 @@ function exportReport(data: ReportData) {
 function ReportView({ data }: { data: ReportData }) {
   const statusColor = (s: string) => s === 'ok' ? '#16a34a' : s === 'warning' ? '#d97706' : '#dc2626'
   const statusBg    = (s: string) => s === 'ok' ? '#f0fdf4' : s === 'warning' ? '#fffbeb' : '#fef2f2'
-  const statusLabel = (s: string) => s === 'ok' ? '✅' : s === 'warning' ? '⚠️' : '🔴'
+  const statusLabel = (s: string) => s === 'ok' ? '✓' : s === 'warning' ? '!' : '✗'
   const kpiPct = (v: string) => Math.min(parseFloat(v.replace(',', '.')) || 0, 100)
   const ciblePct = (v: string) => Math.min(parseFloat(v.replace(',', '.')) || 0, 100)
 
@@ -155,7 +156,7 @@ function ReportView({ data }: { data: ReportData }) {
       }}>
         <div>
           <div style={{ fontFamily:"'Barlow Semi Condensed',sans-serif", fontSize:15, fontWeight:800, color:'#1F3B72', letterSpacing:'-.01em' }}>
-            📋 {data.titre}
+            {data.titre}
           </div>
           <div style={{ fontSize:11, color:'rgba(31,59,114,.45)', marginTop:2, fontWeight:500 }}>{data.periode}</div>
         </div>
@@ -179,7 +180,7 @@ function ReportView({ data }: { data: ReportData }) {
           borderRadius:'0 10px 10px 0', padding:'12px 16px',
         }}>
           <div style={{ fontSize:10.5, fontWeight:700, color:'#1F3B72', letterSpacing:'.07em', textTransform:'uppercase', marginBottom:5 }}>
-            🎯 Synthèse exécutive
+            Synthèse exécutive
           </div>
           <p style={{ margin:0, fontSize:13, color:'#334155', lineHeight:1.65, fontFamily:"'Nunito',sans-serif" }}>{data.synthese}</p>
         </div>
@@ -223,21 +224,21 @@ function ReportView({ data }: { data: ReportData }) {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
           {/* Positifs */}
           <div style={{ background:'#f0fdf4', borderRadius:10, padding:'12px 14px' }}>
-            <div style={{ fontSize:10.5, fontWeight:700, color:'#16a34a', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 }}>✅ Points positifs</div>
+            <div style={{ fontSize:10.5, fontWeight:700, color:'#16a34a', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 }}>Points positifs</div>
             {data.positifs.map((p, i) => (
               <div key={i} style={{ fontSize:12, color:'#166534', marginBottom:5, paddingLeft:8, borderLeft:'2px solid #86efac', lineHeight:1.4 }}>{p}</div>
             ))}
           </div>
           {/* Vigilances */}
           <div style={{ background:'#fffbeb', borderRadius:10, padding:'12px 14px' }}>
-            <div style={{ fontSize:10.5, fontWeight:700, color:'#d97706', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 }}>⚠️ Vigilances</div>
+            <div style={{ fontSize:10.5, fontWeight:700, color:'#d97706', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 }}>Vigilances</div>
             {data.vigilances.map((v, i) => (
               <div key={i} style={{ fontSize:12, color:'#92400e', marginBottom:5, paddingLeft:8, borderLeft:'2px solid #fcd34d', lineHeight:1.4 }}>{v}</div>
             ))}
           </div>
           {/* Recommandations */}
           <div style={{ background:'#eff6ff', borderRadius:10, padding:'12px 14px' }}>
-            <div style={{ fontSize:10.5, fontWeight:700, color:'#1d4ed8', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 }}>💡 Recommandations</div>
+            <div style={{ fontSize:10.5, fontWeight:700, color:'#1d4ed8', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 }}>Recommandations</div>
             {data.recommandations.map((r, i) => (
               <div key={i} style={{ fontSize:12, color:'#1e3a8a', marginBottom:5, paddingLeft:8, borderLeft:'2px solid #93c5fd', lineHeight:1.4 }}><strong>{i + 1}.</strong> {r}</div>
             ))}
@@ -248,7 +249,7 @@ function ReportView({ data }: { data: ReportData }) {
         {data.tableau && data.tableau.colonnes.length > 0 && (
           <div>
             <div style={{ fontSize:10.5, fontWeight:700, color:'rgba(31,59,114,.4)', letterSpacing:'.07em', textTransform:'uppercase', marginBottom:8 }}>
-              📊 {data.tableau.titre}
+              {data.tableau.titre}
             </div>
             <div style={{ borderRadius:10, overflow:'hidden', boxShadow:'0 0 0 1px rgba(31,59,114,.08)' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
@@ -281,10 +282,10 @@ function ReportView({ data }: { data: ReportData }) {
 }
 
 /* ── Données par mode ────────────────────────────────────────────────────── */
-const MODES: { id: Mode; icon: string; label: string; color: string }[] = [
-  { id:'analyse',  icon:'📊', label:'Analyse',          color:'#1F3B72' },
-  { id:'glossaire',icon:'📖', label:'Glossaire',        color:'#0891B2' },
-  { id:'rapport',  icon:'📋', label:'Rapport Narratif', color:'#7C3AED' },
+const MODES: { id: Mode; icon: React.ReactNode; label: string; color: string }[] = [
+  { id:'analyse',  icon:<BarChart2 size={14}/>, label:'Analyse',          color:'#1F3B72' },
+  { id:'glossaire',icon:<BookOpen  size={14}/>, label:'Glossaire',        color:'#0891B2' },
+  { id:'rapport',  icon:<FileText  size={14}/>, label:'Rapport Narratif', color:'#7C3AED' },
 ]
 
 const MODE_DESC: Record<Mode, { headline: string; sub: string; badge: string; badgeColor: string }> = {
@@ -308,30 +309,30 @@ const MODE_DESC: Record<Mode, { headline: string; sub: string; badge: string; ba
   },
 }
 
-const SUGGESTIONS: Record<Mode, { icon: string; text: string; sub: string }[]> = {
+const SUGGESTIONS: Record<Mode, { text: string; sub: string }[]> = {
   analyse: [
-    { icon:'📊', text:'Performance globale', sub:'Taux global de cibles atteintes ?' },
-    { icon:'⚠️', text:'Services en difficulté', sub:'Quels services sous-performent ?' },
-    { icon:'🏆', text:'Meilleurs résultats', sub:'Top 3 services par performance' },
-    { icon:'💡', text:'Plan d\'action', sub:'Recommandations prioritaires' },
-    { icon:'📈', text:'Tendances positives', sub:'Indicateurs en progression' },
-    { icon:'🔍', text:'Indicateurs P1', sub:'Priorités stratégiques en attente' },
+    { text:'Performance globale',    sub:'Taux global de cibles atteintes ?' },
+    { text:'Services en difficulté', sub:'Quels services sous-performent ?' },
+    { text:'Meilleurs résultats',    sub:'Top 3 services par performance' },
+    { text:'Plan d\'action',         sub:'Recommandations prioritaires' },
+    { text:'Tendances positives',    sub:'Indicateurs en progression' },
+    { text:'Indicateurs P1',         sub:'Priorités stratégiques en attente' },
   ],
   glossaire: [
-    { icon:'💧', text:'Taux de recouvrement', sub:'Définition et formule de calcul' },
-    { icon:'⭐', text:'Score Client 360°', sub:'Segmentation et critères d\'évaluation' },
-    { icon:'🔧', text:'Rendement réseau', sub:'Comment est-il calculé ?' },
-    { icon:'🚨', text:'Impayé chronique', sub:'Seuils et profil client critique' },
-    { icon:'🗄️', text:'Gouvernance des données', sub:'Cadre et responsabilités' },
-    { icon:'💰', text:'CA vs encaissement', sub:'Différence comptable clé' },
+    { text:'Taux de recouvrement',    sub:'Définition et formule de calcul' },
+    { text:'Score Client 360°',       sub:'Segmentation et critères d\'évaluation' },
+    { text:'Rendement réseau',        sub:'Comment est-il calculé ?' },
+    { text:'Impayé chronique',        sub:'Seuils et profil client critique' },
+    { text:'Gouvernance des données', sub:'Cadre et responsabilités' },
+    { text:'CA vs encaissement',      sub:'Différence comptable clé' },
   ],
   rapport: [
-    { icon:'💧', text:'Rapport Facturation', sub:'Génère un rapport facturation complet avec les données réelles : CA, encaissement, impayés, taux de recouvrement par DT, et recommandations ciblées.' },
-    { icon:'👥', text:'Rapport RH', sub:'Génère un rapport RH mensuel avec les données réelles : effectifs, taux de féminisation, masse salariale, heures supplémentaires et formation.' },
-    { icon:'📋', text:'Rapport CODIR', sub:'Génère un rapport CODIR complet en utilisant les données réelles de facturation (CA, encaissement, taux recouvrement, impayés) et de RH (effectifs, masse salariale, formation). Inclure synthèse, KPIs, points positifs, vigilances et recommandations.' },
-    { icon:'⚠️', text:'Impayés & recouvrement', sub:'Analyse les impayés et le taux de recouvrement avec les données réelles. Identifie les écarts par rapport à la cible de 85% et propose un plan d\'action.' },
-    { icon:'💰', text:'Masse salariale', sub:'Génère un rapport masse salariale avec les données réelles : montant total, salaire moyen, heures supplémentaires, drift salarial et recommandations.' },
-    { icon:'📈', text:'Tableau de bord DG', sub:'Génère une synthèse consolidée pour la Direction Générale avec les indicateurs clés facturation et RH issus des données réelles.' },
+    { text:'Rapport Facturation',      sub:'Génère un rapport facturation complet avec les données réelles : CA, encaissement, impayés, taux de recouvrement par DT, et recommandations ciblées.' },
+    { text:'Rapport RH',              sub:'Génère un rapport RH mensuel avec les données réelles : effectifs, taux de féminisation, masse salariale, heures supplémentaires et formation.' },
+    { text:'Rapport CODIR',           sub:'Génère un rapport CODIR complet en utilisant les données réelles de facturation (CA, encaissement, taux recouvrement, impayés) et de RH (effectifs, masse salariale, formation). Inclure synthèse, KPIs, points positifs, vigilances et recommandations.' },
+    { text:'Impayés & recouvrement',  sub:'Analyse les impayés et le taux de recouvrement avec les données réelles. Identifie les écarts par rapport à la cible de 85% et propose un plan d\'action.' },
+    { text:'Masse salariale',         sub:'Génère un rapport masse salariale avec les données réelles : montant total, salaire moyen, heures supplémentaires, drift salarial et recommandations.' },
+    { text:'Tableau de bord DG',      sub:'Génère une synthèse consolidée pour la Direction Générale avec les indicateurs clés facturation et RH issus des données réelles.' },
   ],
 }
 
@@ -528,7 +529,7 @@ export default function HubIAPage() {
               onMouseEnter={e => { if(mode !== m.id)(e.currentTarget as HTMLButtonElement).style.background='#f0f4fa' }}
               onMouseLeave={e => { if(mode !== m.id)(e.currentTarget as HTMLButtonElement).style.background='transparent' }}
               >
-                <span style={{ fontSize:13 }}>{m.icon}</span>{m.label}
+                <span style={{ display:'flex', alignItems:'center' }}>{m.icon}</span>{m.label}
               </button>
             ))}
             <div style={{ width:1, height:20, background:'rgba(31,59,114,.10)', margin:'0 4px' }} />
@@ -568,7 +569,7 @@ export default function HubIAPage() {
                   <h2 style={{ fontFamily:"'Barlow Semi Condensed',sans-serif",
                     fontSize:28, fontWeight:800, color:'#1F3B72', marginBottom:6,
                     letterSpacing:'-.01em' }}>
-                    Bonjour{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
+                    Bonjour{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
                   </h2>
                   <p style={{ fontSize:14, color:'rgba(31,59,114,.5)', fontWeight:500, marginBottom:20 }}>
                     Je suis <strong style={{ color:'#96C11E' }}>JAMBAR</strong>, votre assistant analytique SEN&#x27;EAU.
@@ -577,10 +578,10 @@ export default function HubIAPage() {
                   {/* KPI stats mini-row */}
                   <div style={{ display:'flex', justifyContent:'center', gap:10, marginBottom:24, flexWrap:'wrap' }}>
                     {[
-                      { label:'Indicateurs', value: String(TOTAL), icon:'🗂️', color:'#1F3B72' },
-                      { label:'Cibles atteintes', value: `${ATTEINTS}/${TOTAL}`, icon:'✅', color: PCT >= 80 ? '#16a34a' : '#d97706' },
-                      { label:'Taux de réalisation', value: `${PCT}%`, icon:'📈', color: PCT >= 80 ? '#16a34a' : '#d97706' },
-                      { label:'Priorité 1', value: String(P1), icon:'🎯', color:'#E84040' },
+                      { label:'Indicateurs',        value: String(TOTAL),           color:'#1F3B72' },
+                      { label:'Cibles atteintes',   value: `${ATTEINTS}/${TOTAL}`,  color: PCT >= 80 ? '#16a34a' : '#d97706' },
+                      { label:'Taux de réalisation',value: `${PCT}%`,               color: PCT >= 80 ? '#16a34a' : '#d97706' },
+                      { label:'Priorité 1',          value: String(P1),              color:'#E84040' },
                     ].map(k => (
                       <div key={k.label} style={{
                         display:'flex', alignItems:'center', gap:8,
@@ -588,7 +589,7 @@ export default function HubIAPage() {
                         background:'#f7f9fc',
                         boxShadow:'0 1px 3px rgba(31,59,114,.07), 0 0 0 1px rgba(31,59,114,.06)',
                       }}>
-                        <span style={{ fontSize:14 }}>{k.icon}</span>
+                        <div style={{ width:6, height:6, borderRadius:'50%', background:k.color, flexShrink:0 }} />
                         <div style={{ textAlign:'left' }}>
                           <div style={{ fontSize:15, fontWeight:800, color: k.color, lineHeight:1.1 }}>{k.value}</div>
                           <div style={{ fontSize:10, color:'rgba(31,59,114,.4)', fontWeight:600, letterSpacing:'.02em' }}>{k.label}</div>
@@ -610,10 +611,10 @@ export default function HubIAPage() {
                       display:'flex', alignItems:'center', gap:16,
                     }}>
                       <div style={{
-                        width:44, height:44, borderRadius:12, flexShrink:0,
+                        width:36, height:36, borderRadius:10, flexShrink:0,
                         background:`${modeColor}12`,
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:22,
+                        color: modeColor,
                       }}>{MODES.find(m => m.id === mode)!.icon}</div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontFamily:"'Barlow Semi Condensed',sans-serif",
@@ -655,11 +656,8 @@ export default function HubIAPage() {
                       onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background='#eef2fb'; b.style.transform='translateY(-1px)'; b.style.boxShadow='0 4px 14px rgba(31,59,114,.10)' }}
                       onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background='#f7f9fc'; b.style.transform='none'; b.style.boxShadow='0 1px 3px rgba(31,59,114,.07), 0 0 0 1px rgba(31,59,114,.06)' }}
                       >
-                        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                          <span style={{ fontSize:16, lineHeight:1, flexShrink:0 }}>{s.icon}</span>
-                          <span style={{ fontSize:12.5, fontWeight:700, color:'#1F3B72', lineHeight:1.3 }}>{s.text}</span>
-                        </div>
-                        <span style={{ fontSize:11.5, color:'rgba(31,59,114,.45)', lineHeight:1.4, paddingLeft:23 }}>{s.sub}</span>
+                        <span style={{ fontSize:12.5, fontWeight:700, color:'#1F3B72', lineHeight:1.3 }}>{s.text}</span>
+                        <span style={{ fontSize:11.5, color:'rgba(31,59,114,.45)', lineHeight:1.4 }}>{s.sub}</span>
                       </button>
                     ))}
                   </div>
@@ -699,7 +697,8 @@ export default function HubIAPage() {
                         /* Streaming rapport en cours → placeholder */
                         <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 16px',
                           background:'#f0f6ff', borderRadius:12, fontSize:13, color:'#1F3B72', fontWeight:600 }}>
-                          <span style={{ animation:'spin 1s linear infinite', display:'inline-block' }}>⏳</span>
+                          <div style={{ width:14, height:14, borderRadius:'50%', border:'2px solid #1F3B72',
+                            borderTopColor:'transparent', animation:'spin 1s linear infinite', flexShrink:0 }} />
                           Génération du rapport en cours…
                         </div>
                       ) : (
