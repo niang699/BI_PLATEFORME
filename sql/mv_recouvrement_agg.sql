@@ -27,6 +27,15 @@
 
 
 -- -----------------------------------------------------------------------------
+-- PARAMÈTRES SESSION — Limiter la RAM utilisée pendant la création
+-- Serveur partagé : RAM disponible limitée (Metabase, Superset, Neo4j, Trino…)
+-- -----------------------------------------------------------------------------
+SET work_mem = '32MB';                       -- RAM par opération de tri/hash (défaut souvent 64MB+)
+SET max_parallel_workers_per_gather = 0;     -- désactive le parallélisme (évite x8 workers en RAM)
+SET enable_hashjoin = off;                   -- force Merge Join (moins gourmand en RAM que Hash Join)
+
+
+-- -----------------------------------------------------------------------------
 -- ÉTAPE 1 — Supprimer l'ancienne version si elle existe
 -- -----------------------------------------------------------------------------
 DROP MATERIALIZED VIEW IF EXISTS public.mv_recouvrement_agg;
@@ -227,11 +236,17 @@ GROUP BY
     categorie_rgp, statut_facture,
     annee, mois, bimestre
 
-WITH DATA;
+WITH NO DATA;  -- ← structure créée sans données (évite le manque de RAM immédiat)
 
 
 -- -----------------------------------------------------------------------------
--- ÉTAPE 3 — Index pour les filtres les plus fréquents
+-- ÉTAPE 2b — Index d'abord (possible sur MV vide), PUIS remplissage
+-- L'ordre Index → REFRESH est plus efficace : pas de rebuild d'index après
+-- -----------------------------------------------------------------------------
+
+
+-- -----------------------------------------------------------------------------
+-- ÉTAPE 3 — Index pour les filtres les plus fréquents (sur MV vide = rapide)
 -- -----------------------------------------------------------------------------
 
 -- Filtre principal (toutes les requêtes)
@@ -283,7 +298,19 @@ CREATE UNIQUE INDEX idx_recouvrement_agg_unique
 
 
 -- -----------------------------------------------------------------------------
--- ÉTAPE 5 — Vérifications
+-- ÉTAPE 5 — Remplissage des données (avec RAM limitée)
+-- À exécuter après les index — prendra quelques minutes sur le serveur partagé
+-- -----------------------------------------------------------------------------
+REFRESH MATERIALIZED VIEW public.mv_recouvrement_agg;
+
+-- Remettre les paramètres par défaut pour les autres sessions
+RESET work_mem;
+RESET max_parallel_workers_per_gather;
+RESET enable_hashjoin;
+
+
+-- -----------------------------------------------------------------------------
+-- ÉTAPE 6 — Vérifications
 -- -----------------------------------------------------------------------------
 
 SELECT COUNT(*) AS nb_lignes_agregees
