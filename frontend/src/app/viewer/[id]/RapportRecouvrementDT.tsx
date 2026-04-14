@@ -1,6 +1,10 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { AlertTriangle, Check, X as XIcon, TrendingDown } from 'lucide-react'
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ReferenceLine, ResponsiveContainer, Cell,
+} from 'recharts'
 
 /* ═══════════════════════════════ TYPES ════════════════════════════════════ */
 interface Filtres {
@@ -285,9 +289,10 @@ function ChartClassementDR({ rows }: { rows: DtRow[] }) {
   const rankColors = ['#F59E0B', '#94A3B8', '#CD7F32']
 
   const barColor = (t: number, risk: boolean) => {
-    if (!risk)   return { from: '#4ade80', to: '#16a34a' }
+    if (!risk)   return { from: C_GREEN, to: '#4a7c10' }
     if (t >= 80) return { from: '#fbbf24', to: C_ORANGE }
     return         { from: '#f87171', to: C_RED }
+
   }
 
   return (
@@ -348,15 +353,15 @@ function ChartClassementDR({ rows }: { rows: DtRow[] }) {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,.07)' }}>
                       <span style={{ fontSize: 28, fontWeight: 900, fontFamily: F_TITLE, color: to, lineHeight: 1 }}>{fmtPct(t)}</span>
-                      <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.05em', padding: '4px 9px', borderRadius: 99, background: r.a_risque ? 'rgba(248,113,113,.12)' : 'rgba(74,222,128,.12)', color: r.a_risque ? '#f87171' : '#4ade80', border: `1px solid ${r.a_risque ? 'rgba(248,113,113,.25)' : 'rgba(74,222,128,.25)'}` }}>
+                      <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.05em', padding: '4px 9px', borderRadius: 99, background: r.a_risque ? 'rgba(232,64,64,.10)' : 'rgba(150,193,30,.12)', color: r.a_risque ? C_RED : '#4a7c10', border: `1px solid ${r.a_risque ? 'rgba(232,64,64,.20)' : 'rgba(150,193,30,.25)'}` }}>
                         {r.a_risque ? `SOUS OBJECTIF (${r.ecart_objectif.toFixed(1)} pt)` : 'OBJECTIF ATTEINT'}
                       </span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                       {[
                         { label: 'CA Total', value: fmtFcfa(r.ca_total), color: '#94a3c8' },
-                        { label: 'Encaissé', value: fmtFcfa(r.encaissement), color: '#4ade80' },
-                        { label: 'Impayés',  value: fmtFcfa(r.impaye), color: '#f87171' },
+                        { label: 'Encaissé', value: fmtFcfa(r.encaissement), color: C_GREEN },
+                        { label: 'Impayés',  value: fmtFcfa(r.impaye), color: C_RED },
                       ].map(k => (
                         <div key={k.label}>
                           <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,.28)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 3 }}>{k.label}</div>
@@ -397,51 +402,103 @@ function ChartClassementDR({ rows }: { rows: DtRow[] }) {
 }
 
 /* ═══════════════════════ ÉVOLUTION BIMESTRIELLE ═══════════════════════════ */
+function TooltipBim({ active, payload, label }: { active?: boolean; payload?: {value:number;name:string;color:string}[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  const taux = payload.find(p => p.name === 'taux')?.value ?? 0
+  const ca   = payload.find(p => p.name === 'ca')?.value   ?? 0
+  const enc  = payload.find(p => p.name === 'enc')?.value  ?? 0
+  const ok   = taux >= OBJECTIF
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e8edf5', borderRadius: 12, padding: '12px 16px', boxShadow: '0 6px 24px rgba(31,59,114,.12)', fontFamily: F_BODY, minWidth: 190 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: C_NAVY, marginBottom: 8, fontFamily: F_TITLE }}>{label}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+          <span style={{ fontSize: 10, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>CA facturé</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C_NAVY }}>{fmtFcfa(ca)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+          <span style={{ fontSize: 10, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>Encaissé</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C_GREEN }}>{fmtFcfa(enc)}</span>
+        </div>
+        <div style={{ borderTop: '1px solid #f1f5f9', marginTop: 4, paddingTop: 6, display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+          <span style={{ fontSize: 10, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>Taux recvt</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: ok ? '#4a7c10' : C_RED }}>
+            {fmtPct(taux)} {ok ? '✓' : '↓'}
+          </span>
+        </div>
+        {!ok && (
+          <div style={{ fontSize: 10, color: C_RED, fontWeight: 600, textAlign: 'right' }}>
+            Δ objectif : {fmtPct(taux - OBJECTIF)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ChartEvolution({ rows }: { rows: BimRow[] }) {
-  const sorted  = [...rows].sort((a, b) => a.bimestre - b.bimestre)
-  if (!sorted.length) return null
-  const maxTaux = Math.max(100, ...sorted.map(r => r.taux_recouvrement))
-  const [hovered, setHovered] = useState<number | null>(null)
+  const data = [...rows]
+    .sort((a, b) => a.bimestre - b.bimestre)
+    .map(r => ({
+      label:  BIMESTRE_LABELS[r.bimestre] ?? `B${r.bimestre}`,
+      taux:   r.taux_recouvrement,
+      ca:     r.ca_total,
+      enc:    r.encaissement,
+      ok:     r.taux_recouvrement >= OBJECTIF,
+    }))
+  if (!data.length) return null
+
+  const minTaux = Math.max(0, Math.min(...data.map(d => d.taux)) - 5)
+  const maxTaux = Math.min(102, Math.max(...data.map(d => d.taux)) + 3)
 
   return (
     <Panel>
-      <div style={{ padding: '18px 22px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-          <span style={{ width: 4, height: 18, borderRadius: 99, background: C_GREEN, display: 'inline-block', flexShrink: 0 }} />
+      <div style={{ padding: '16px 22px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <span style={{ width: 4, height: 18, borderRadius: 99, background: C_NAVY, display: 'inline-block', flexShrink: 0 }} />
           <span style={{ fontFamily: F_BODY, fontSize: 11, fontWeight: 800, color: 'rgba(31,59,114,.5)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-            Évolution du taux de recouvrement par bimestre
+            Taux de recouvrement par bimestre
           </span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.45)', fontFamily: F_BODY, fontWeight: 600 }}>
+              <span style={{ width: 12, height: 3, borderRadius: 99, background: C_NAVY, display: 'inline-block' }} />CA
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.45)', fontFamily: F_BODY, fontWeight: 600 }}>
+              <span style={{ width: 12, height: 3, borderRadius: 99, background: C_GREEN, display: 'inline-block' }} />Taux
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.45)', fontFamily: F_BODY, fontWeight: 600 }}>
+              <span style={{ width: 12, height: 0, borderTop: '2px dashed rgba(232,64,64,.5)', display: 'inline-block' }} />Objectif
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160, paddingBottom: 8 }}>
-          {sorted.map((r, i) => {
-            const taux      = r.taux_recouvrement
-            const heightPct = (taux / maxTaux) * 100
-            const ok        = taux >= OBJECTIF
-            const isHov     = hovered === i
-            const color     = ok ? C_GREEN : taux >= 80 ? C_ORANGE : C_RED
 
-            return (
-              <div key={r.bimestre} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'relative' }}
-                onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
-                {isHov && (
-                  <div style={{ position: 'absolute', bottom: '100%', marginBottom: 4, background: '#fff', border: `1px solid ${color}`, borderRadius: 8, padding: '6px 10px', fontSize: 11, fontWeight: 800, color, fontFamily: F_TITLE, whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(31,59,114,.12)', zIndex: 10 }}>
-                    {fmtPct(taux)}
-                    <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(31,59,114,.45)', marginTop: 2 }}>{fmtFcfa(r.ca_total)}</div>
-                  </div>
-                )}
-                <div style={{ position: 'absolute', bottom: `${(OBJECTIF / maxTaux) * 100}%`, left: 0, right: 0, borderTop: '1px dashed rgba(31,59,114,.15)', zIndex: 0 }} />
-                <div style={{ width: '100%', height: `${heightPct}%`, background: `linear-gradient(180deg,${color},${color}88)`, borderRadius: '6px 6px 0 0', transition: 'filter .15s', filter: isHov ? 'brightness(1.1)' : 'none', minHeight: 4, cursor: 'pointer', position: 'relative', zIndex: 1 }} />
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(31,59,114,.5)', fontFamily: F_BODY, textAlign: 'center', whiteSpace: 'nowrap' }}>
-                  {BIMESTRE_LABELS[r.bimestre] ?? `B${r.bimestre}`}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ width: 18, height: 1, borderTop: '1px dashed rgba(31,59,114,.25)' }} />
-          <span style={{ fontSize: 10, color: 'rgba(31,59,114,.4)', fontFamily: F_BODY, fontWeight: 600 }}>Objectif {OBJECTIF}%</span>
-        </div>
+        <ResponsiveContainer width="100%" height={210}>
+          <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f3f9" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: F_BODY, fill: 'rgba(31,59,114,.5)' }} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="ca" orientation="left" tick={{ fontSize: 9, fontFamily: F_BODY, fill: 'rgba(31,59,114,.35)' }}
+              tickFormatter={v => fmtFcfa(v)} width={62} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="taux" orientation="right" domain={[minTaux, maxTaux]}
+              tick={{ fontSize: 9, fontFamily: F_BODY, fill: 'rgba(31,59,114,.35)' }}
+              tickFormatter={v => `${v}%`} width={38} axisLine={false} tickLine={false} />
+            <Tooltip content={<TooltipBim />} />
+            <ReferenceLine yAxisId="taux" y={OBJECTIF} stroke={C_RED} strokeDasharray="5 3" strokeWidth={1.5} strokeOpacity={.55} />
+            <Bar yAxisId="ca" dataKey="ca" name="ca" radius={[5,5,0,0]} maxBarSize={48} opacity={.18}>
+              {data.map((d, i) => <Cell key={i} fill={C_NAVY} />)}
+            </Bar>
+            <Bar yAxisId="ca" dataKey="enc" name="enc" radius={[5,5,0,0]} maxBarSize={48} opacity={.55}>
+              {data.map((d, i) => <Cell key={i} fill={C_GREEN} />)}
+            </Bar>
+            <Line yAxisId="taux" dataKey="taux" name="taux" type="monotone"
+              stroke={C_NAVY} strokeWidth={2.5} dot={(props) => {
+                const { cx, cy, payload } = props
+                const color = payload.ok ? '#4a7c10' : C_RED
+                return <circle key={cx} cx={cx} cy={cy} r={4} fill={color} stroke="#fff" strokeWidth={2} />
+              }}
+              activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </Panel>
   )
@@ -598,7 +655,7 @@ export default function RapportRecouvrementDT() {
   const periodeLabel = anneeLabel ? `${anneeLabel} · ${bimLabel}` : bimLabel
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f4f6fb', fontFamily: F_BODY, overflowY: 'auto' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc', fontFamily: F_BODY, overflowY: 'auto' }}>
       <style>{`@keyframes spin-rdt { to { transform:rotate(360deg); } } @keyframes shimmer-rdt { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
       {/* ── Barre de filtres ──────────────────────────────────────────── */}
@@ -626,7 +683,7 @@ export default function RapportRecouvrementDT() {
           )}
 
           {summary && !loading && (
-            <div style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, background: '#f4f6fb', border: '1px solid #e8edf5', fontSize: 11, fontWeight: 600, color: 'rgba(31,59,114,.5)', fontFamily: F_BODY, alignSelf: 'flex-end' }}>
+            <div style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e8edf5', fontSize: 11, fontWeight: 600, color: 'rgba(31,59,114,.5)', fontFamily: F_BODY, alignSelf: 'flex-end' }}>
               {periodeLabel} · {summary.nb_dr} DR
             </div>
           )}

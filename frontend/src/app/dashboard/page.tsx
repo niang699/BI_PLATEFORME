@@ -71,8 +71,8 @@ function PinnedCard({ report }: { report: typeof REPORTS[0] }) {
           </span>
           <span style={{
             fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-            background: live ? 'rgba(22,163,74,.08)' : 'rgba(245,158,11,.08)',
-            color: live ? '#16a34a' : '#d97706',
+            background: live ? 'rgba(150,193,30,.10)' : 'rgba(245,158,11,.08)',
+            color: live ? '#96C11E' : '#d97706',
           }}>
             {live ? 'En direct' : 'Récent'}
           </span>
@@ -112,19 +112,25 @@ function PinnedCard({ report }: { report: typeof REPORTS[0] }) {
    PAGE
 ══════════════════════════════════════════════════════════════════════════ */
 export default function HomePage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [greeting, setGreeting] = useState('')
-  const [dateLabel, setDateLabel] = useState('')
+  const [user,       setUser]       = useState<User | null>(null)
+  const [greeting,   setGreeting]   = useState('')
+  const [dateLabel,  setDateLabel]  = useState('')
+  const [allowedIds, setAllowedIds] = useState<string[] | null>(null)
 
   useEffect(() => {
     setUser(getCurrentUser())
     const h = new Date().getHours()
     setGreeting(h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir')
     setDateLabel(new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))
+    fetch('/api/report-permissions')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.allowed) setAllowedIds(d.allowed) })
+      .catch(() => setAllowedIds(null))
   }, [])
 
-  const pinned = REPORTS.filter(r => r.pinned)
-  const recent = REPORTS.filter(r => !r.pinned).slice(0, 6)
+  const visibleReports = allowedIds === null ? REPORTS : REPORTS.filter(r => allowedIds.includes(r.id))
+  const pinned = visibleReports.filter(r => r.pinned)
+  const recent = visibleReports.filter(r => !r.pinned).slice(0, 6)
   const unread = ALERTS.filter(a => !a.read)
 
   const card: React.CSSProperties = {
@@ -162,7 +168,7 @@ export default function HomePage() {
           {/* KPIs */}
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {[
-              { label: 'Rapports',     value: PLATFORM_STATS.totalReports },
+              { label: 'Rapports',     value: visibleReports.length },
               { label: 'Utilisateurs', value: PLATFORM_STATS.activeUsers  },
               { label: 'Sources',      value: PLATFORM_STATS.datasources  },
               { label: 'Alertes',      value: unread.length, alert: unread.length > 0 },
@@ -233,7 +239,7 @@ export default function HomePage() {
               <SH label="Explorer par catégorie" />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                 {CATEGORIES.map(cat => {
-                  const count = REPORTS.filter(r => r.category === cat.id).length
+                  const count = visibleReports.filter(r => r.category === cat.id).length
                   return (
                     <Link
                       key={cat.id}

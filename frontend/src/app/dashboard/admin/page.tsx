@@ -165,14 +165,14 @@ const ROLES_DEF = [
   { key: 'super_admin'  as Role, label: 'Super Admin',  shortLabel: 'S.Admin', desc: 'Accès total — gestion users, paramètres système, tous les rapports', color: '#1F3B72', bg: 'rgba(31,59,114,.1)',  perms: { read: true,  create: true,  publish: true,  manageUsers: true,  admin: true  } },
   { key: 'admin_metier' as Role, label: 'Admin Métier', shortLabel: 'Admin',   desc: 'Lecture + création de rapports — périmètre DT assigné',              color: '#7C3AED', bg: 'rgba(124,58,237,.1)', perms: { read: true,  create: true,  publish: true,  manageUsers: false, admin: false } },
   { key: 'analyste'     as Role, label: 'Analyste',     shortLabel: 'Analyste',desc: 'Lecture + création — accès analytique complet sans publication',      color: '#0891B2', bg: 'rgba(8,145,178,.1)',  perms: { read: true,  create: true,  publish: false, manageUsers: false, admin: false } },
-  { key: 'lecteur_dt'   as Role, label: 'Lecteur DT',   shortLabel: 'Lecteur', desc: 'Lecture seule — périmètre Direction Territoriale',                    color: '#059669', bg: 'rgba(5,150,105,.1)',  perms: { read: true,  create: false, publish: false, manageUsers: false, admin: false } },
+  { key: 'lecteur_dt'   as Role, label: 'Lecteur DT',   shortLabel: 'Lecteur', desc: 'Lecture seule — périmètre Direction Territoriale',                    color: '#96C11E', bg: 'rgba(150,193,30,.10)',  perms: { read: true,  create: false, publish: false, manageUsers: false, admin: false } },
   { key: 'dt'           as Role, label: 'Directeur DT', shortLabel: 'Dir. DT', desc: 'Lecture terrain — rapports releveurs et opérations DT',              color: '#D97706', bg: 'rgba(217,119,6,.1)',  perms: { read: true,  create: false, publish: false, manageUsers: false, admin: false } },
 ]
 
 /* ── Category meta ─────────────────────────────────────────────────────────── */
 const CAT_META: Record<string, { label: string; color: string; bg: string }> = {
   facturation: { label: 'Facturation',     color: '#0891B2', bg: 'rgba(8,145,178,.06)'  },
-  production:  { label: 'Production',      color: '#059669', bg: 'rgba(5,150,105,.06)'  },
+  production:  { label: 'Production',      color: '#96C11E', bg: 'rgba(150,193,30,.07)'  },
   sig:         { label: 'SIG',             color: '#7C3AED', bg: 'rgba(124,58,237,.06)' },
   maintenance: { label: 'Maintenance',     color: '#D97706', bg: 'rgba(217,119,6,.06)'  },
   rh:          { label: 'Ressources Hum.', color: '#E84040', bg: 'rgba(232,64,64,.06)'  },
@@ -307,7 +307,7 @@ export default function AdminPage() {
   const [navMatrix, setNavMatrix] = useState<Record<string, Role[]>>(() =>
     Object.fromEntries(NAV_PAGES.map(p => [p.id, [...p.defaultRoles]]))
   )
-  const [baseNavMatrix] = useState<Record<string, Role[]>>(() =>
+  const [baseNavMatrix, setBaseNavMatrix] = useState<Record<string, Role[]>>(() =>
     Object.fromEntries(NAV_PAGES.map(p => [p.id, [...p.defaultRoles]]))
   )
   const [navDirty, setNavDirty] = useState(false)
@@ -337,11 +337,25 @@ export default function AdminPage() {
     } catch { /* fallback mockData */ }
   }, [])
 
+  const loadNavMatrix = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/nav-access')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.nav) {
+        // Merge avec les defaults pour les pages éventuellement absentes
+        const merged = { ...Object.fromEntries(NAV_PAGES.map(p => [p.id, [...p.defaultRoles]])), ...data.nav }
+        setNavMatrix(merged)
+        setBaseNavMatrix(merged)
+      }
+    } catch { /* fallback defaults */ }
+  }, [])
+
   useEffect(() => {
     if (loaded && (currentUser?.role === 'super_admin' || currentUser?.role === 'admin_metier')) {
-      loadUsers(); loadMatrix()
+      loadUsers(); loadMatrix(); loadNavMatrix()
     }
-  }, [loaded, currentUser, loadUsers, loadMatrix])
+  }, [loaded, currentUser, loadUsers, loadMatrix, loadNavMatrix])
 
   const disableUser = async (u: ApiUser) => {
     await fetch(`/api/admin/users?id=${u.id}`, { method: 'DELETE' })
@@ -375,9 +389,18 @@ export default function AdminPage() {
   async function handleSaveMatrix() {
     setSavingMatrix(true); setSaveErr(null)
     try {
-      const res = await fetch('/api/admin/access', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access: accessMatrix }) })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setDbMatrix({ ...accessMatrix }); setMatrixDirty(false); setSaveOk(true)
+      // Sauvegarder la matrice rapports et la matrice navigation en parallèle
+      const [resAccess, resNav] = await Promise.all([
+        fetch('/api/admin/access',     { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access: accessMatrix }) }),
+        fetch('/api/admin/nav-access', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nav: navMatrix }) }),
+      ])
+      if (!resAccess.ok) throw new Error(`Rapports: HTTP ${resAccess.status}`)
+      if (!resNav.ok)    throw new Error(`Navigation: HTTP ${resNav.status}`)
+      setDbMatrix({ ...accessMatrix })
+      setBaseNavMatrix({ ...navMatrix })
+      setMatrixDirty(false)
+      setNavDirty(false)
+      setSaveOk(true)
       setTimeout(() => setSaveOk(false), 5000)
     } catch (e) { setSaveErr(e instanceof Error ? e.message : 'Erreur') }
     finally { setSavingMatrix(false) }
@@ -486,7 +509,7 @@ export default function AdminPage() {
                     </div>
                     {catItems.map(r => (
                       <div key={r.id} style={{ padding: '9px 22px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: r.hasAccess ? '#059669' : '#d1d5db' }} />
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: r.hasAccess ? '#96C11E' : '#d1d5db' }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: r.hasAccess ? C_NAVY : 'rgba(31,59,114,.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {r.title}
@@ -545,7 +568,7 @@ export default function AdminPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
             {[
               { icon: <Users size={17} />,    value: usersLoading ? '…' : String(totalUsers),  label: 'Utilisateurs',   sub: `${activeUsers} actifs`,                   color: C_NAVY    },
-              { icon: <Check size={17} />,    value: usersLoading ? '…' : String(activeUsers),  label: 'Comptes actifs', sub: `${totalUsers - activeUsers} inactifs`,     color: '#059669' },
+              { icon: <Check size={17} />,    value: usersLoading ? '…' : String(activeUsers),  label: 'Comptes actifs', sub: `${totalUsers - activeUsers} inactifs`,     color: '#96C11E' },
               { icon: <BarChart3 size={17} />, value: String(REPORTS.length),                   label: 'Rapports',       sub: `${Object.keys(CAT_META).length} catégories`, color: '#0891B2' },
               { icon: <Shield size={17} />,   value: '5',                                       label: 'Rôles',          sub: 'Hiérarchie définie',                       color: '#7C3AED' },
             ].map(c => (
@@ -664,7 +687,7 @@ export default function AdminPage() {
                                 <span style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5,
                                   padding: '3px 9px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                                  ...(u.is_active ? { background: 'rgba(5,150,105,.08)', color: '#059669' } : { background: 'rgba(148,163,184,.1)', color: '#64748b' }),
+                                  ...(u.is_active ? { background: 'rgba(150,193,30,.10)', color: '#96C11E' } : { background: 'rgba(148,163,184,.1)', color: '#64748b' }),
                                 }}>
                                   {u.is_active ? <Check size={9} /> : <X size={9} />}
                                   {u.is_active ? 'Actif' : 'Inactif'}
@@ -726,8 +749,8 @@ export default function AdminPage() {
             )}
 
             {saveOk && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', borderRadius: 14, background: '#f0fdf4', boxShadow: '0 4px 20px rgba(5,150,105,.10)', fontSize: 12, color: '#065f46', fontWeight: 600 }}>
-                <CheckCircle2 size={15} style={{ color: '#059669', flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', borderRadius: 14, background: 'rgba(150,193,30,.07)', boxShadow: '0 4px 20px rgba(150,193,30,.12)', fontSize: 12, color: '#4a7c10', fontWeight: 600 }}>
+                <CheckCircle2 size={15} style={{ color: '#96C11E', flexShrink: 0 }} />
                 Matrice d&apos;accès sauvegardée.
               </div>
             )}
@@ -757,7 +780,7 @@ export default function AdminPage() {
               <SectionHeader
                 label="Matrice d'accès — Rapports × Rôles"
                 right={isSuperAdmin
-                  ? <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,.08)', padding: '3px 10px', borderRadius: 6 }}>Mode édition</span>
+                  ? <span style={{ fontSize: 10, fontWeight: 700, color: '#96C11E', background: 'rgba(150,193,30,.10)', padding: '3px 10px', borderRadius: 6 }}>Mode édition</span>
                   : <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.35)', fontWeight: 600 }}><Lock size={10} />Lecture seule</span>}
               />
               {isSuperAdmin && (
@@ -809,7 +832,7 @@ export default function AdminPage() {
                                   title={isSuperAdmin ? (ok ? `Révoquer ${role.label}` : `Accorder ${role.label}`) : 'Super Admin uniquement'}
                                   style={{
                                     width: 30, height: 30, borderRadius: 8,
-                                    border: changed ? `2px solid ${ok ? '#059669' : '#dc2626'}` : '2px solid transparent',
+                                    border: changed ? `2px solid ${ok ? '#96C11E' : '#dc2626'}` : '2px solid transparent',
                                     cursor: isSuperAdmin ? 'pointer' : 'default',
                                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                     background: ok ? role.bg : 'transparent',
@@ -838,7 +861,7 @@ export default function AdminPage() {
               <SectionHeader
                 label="Matrice d'accès — Navigation × Rôles"
                 right={isSuperAdmin
-                  ? <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,.08)', padding: '3px 10px', borderRadius: 6 }}>Mode édition</span>
+                  ? <span style={{ fontSize: 10, fontWeight: 700, color: '#96C11E', background: 'rgba(150,193,30,.10)', padding: '3px 10px', borderRadius: 6 }}>Mode édition</span>
                   : <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.35)', fontWeight: 600 }}><Lock size={10} />Lecture seule</span>}
               />
               {isSuperAdmin && (
@@ -890,7 +913,7 @@ export default function AdminPage() {
                                   title={isSuperAdmin ? (ok ? `Révoquer ${role.label}` : `Accorder ${role.label}`) : 'Super Admin uniquement'}
                                   style={{
                                     width: 30, height: 30, borderRadius: 8,
-                                    border: changed ? `2px solid ${ok ? '#059669' : '#dc2626'}` : '2px solid transparent',
+                                    border: changed ? `2px solid ${ok ? '#96C11E' : '#dc2626'}` : '2px solid transparent',
                                     cursor: isSuperAdmin ? 'pointer' : 'default',
                                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                     background: ok ? role.bg : 'transparent',
@@ -936,7 +959,7 @@ export default function AdminPage() {
                       onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.background = '#f8fafc')}
                       onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
                     >
-                      <div style={{ marginTop: 5, width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: r.status === 'live' ? '#059669' : r.status === 'recent' ? '#f59e0b' : '#94a3b8' }} />
+                      <div style={{ marginTop: 5, width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: r.status === 'live' ? '#96C11E' : r.status === 'recent' ? '#f59e0b' : '#94a3b8' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 13, fontWeight: 700, color: C_NAVY }}>{r.title}</span>
@@ -974,10 +997,10 @@ export default function AdminPage() {
             {/* Infrastructure */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
               {[
-                { label: 'Base ODS',     sub: '10.106.99.138 · odsDB',            color: '#059669', status: 'Connectée'  },
-                { label: 'Base Portail', sub: '10.106.99.138 · Portail_DATA',      color: '#059669', status: 'Connectée'  },
+                { label: 'Base ODS',     sub: '10.106.99.138 · odsDB',            color: '#96C11E', status: 'Connectée'  },
+                { label: 'Base Portail', sub: '10.106.99.138 · Portail_DATA',      color: '#96C11E', status: 'Connectée'  },
                 { label: 'Redis Cache',  sub: 'Session cache · TTL 5 min',         color: '#D97706', status: 'En attente' },
-                { label: 'Middleware',   sub: 'Edge Runtime · Protège /dashboard', color: '#059669', status: 'Actif'      },
+                { label: 'Middleware',   sub: 'Edge Runtime · Protège /dashboard', color: '#96C11E', status: 'Actif'      },
               ].map(db => (
                 <div key={db.label} style={{ ...card, padding: '18px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -1034,7 +1057,7 @@ export default function AdminPage() {
                         { label: 'Rapports',    ttl: '1 h',   color: C_NAVY    },
                         { label: 'KPIs RH',     ttl: '1 h',   color: '#7C3AED' },
                         { label: 'Facturation', ttl: '1 h',   color: '#0891B2' },
-                        { label: 'Sessions',    ttl: '5 min', color: '#059669' },
+                        { label: 'Sessions',    ttl: '5 min', color: '#96C11E' },
                         { label: 'Filtres',     ttl: '5 min', color: C_GREEN   },
                       ].map(s => (
                         <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(31,59,114,.05)', borderRadius: 20, padding: '4px 10px', fontSize: 10, fontWeight: 600, color: 'rgba(31,59,114,.5)' }}>
@@ -1047,7 +1070,7 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
                     <button onClick={handleRefreshCache} disabled={cacheStatus === 'loading'} style={{
                       display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 9, border: 'none',
-                      background: cacheStatus === 'loading' ? '#f1f5f9' : cacheStatus === 'ok' ? '#059669' : C_NAVY,
+                      background: cacheStatus === 'loading' ? '#f1f5f9' : cacheStatus === 'ok' ? '#96C11E' : C_NAVY,
                       color: cacheStatus === 'loading' ? 'rgba(31,59,114,.4)' : '#fff',
                       fontSize: 12, fontWeight: 700, cursor: cacheStatus === 'loading' ? 'not-allowed' : 'pointer',
                       fontFamily: F_BODY, minWidth: 200, justifyContent: 'center', transition: 'background .2s',
@@ -1056,7 +1079,7 @@ export default function AdminPage() {
                       {cacheStatus === 'loading' ? 'Actualisation…' : cacheStatus === 'ok' ? 'Cache vidé' : 'Vider le cache'}
                     </button>
                     {cacheStatus === 'ok' && cacheResult && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: '#059669', fontWeight: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: '#96C11E', fontWeight: 600 }}>
                         <CheckCircle2 size={12} />
                         {cacheResult.cleared} entrée{cacheResult.cleared !== 1 ? 's' : ''} supprimée{cacheResult.cleared !== 1 ? 's' : ''} · {cacheResult.lastAt}
                       </div>

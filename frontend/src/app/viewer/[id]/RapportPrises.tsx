@@ -102,7 +102,7 @@ interface FiltresDispo {
 }
 
 const FIABILITE_CFG = {
-  haute:      { color: '#16a34a', label: 'Haute',      bg: 'rgba(22,163,74,.10)'   },
+  haute:      { color: '#4a7c10', label: 'Haute',      bg: 'rgba(150,193,30,.12)'  },
   acceptable: { color: C_ORANGE,  label: 'Acceptable', bg: 'rgba(217,119,6,.10)'   },
   indicatif:  { color: '#94a3b8', label: 'Indicatif',  bg: 'rgba(148,163,184,.10)' },
 }
@@ -147,7 +147,7 @@ function KpiCard({ label, value, sub, accent, delta }: {
 }) {
   const dcolor = delta
     ? delta.val === 0 ? '#94a3b8'
-      : (delta.val > 0) === (delta.positifBon ?? true) ? '#16a34a' : C_RED
+      : (delta.val > 0) === (delta.positifBon ?? true) ? '#4a7c10' : C_RED
     : ''
   const arrow = delta ? (delta.val > 0 ? '▲' : delta.val < 0 ? '▼' : '—') : ''
   const sign  = delta && delta.val > 0 ? '+' : ''
@@ -559,7 +559,7 @@ function DetailAnciennete({ annee, dr, uoList }: { annee: string; dr: string; uo
 
                       {/* Bim. facturés / total */}
                       <td style={{ padding: '8px 14px', textAlign: 'right' }}>
-                        <span style={{ fontWeight: 700, color: r.nb_bim_factures === 0 ? '#991b1b' : '#16a34a', fontFamily: F_TITLE }}>
+                        <span style={{ fontWeight: 700, color: r.nb_bim_factures === 0 ? '#991b1b' : '#4a7c10', fontFamily: F_TITLE }}>
                           {r.nb_bim_factures}
                         </span>
                         <span style={{ color: '#94a3b8', fontSize: 10 }}>/{r.nb_bim_total}</span>
@@ -646,9 +646,9 @@ function SectionAnciennete({ dist, par_uo, annee }: { dist: AncDist[]; par_uo: A
 
       {/* Alerte critique si jamais facturés */}
       {critiques > 0 && (
-        <div style={{ background: 'rgba(153,27,27,.06)', border: '1px solid rgba(153,27,27,.18)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Clock size={14} color="#991b1b" strokeWidth={2} style={{ flexShrink: 0 }} />
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', fontFamily: F_BODY }}>
+        <div style={{ background: 'rgba(232,64,64,.06)', border: '1px solid rgba(232,64,64,.18)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Clock size={14} color={C_RED} strokeWidth={2} style={{ flexShrink: 0 }} />
+          <div style={{ fontSize: 12, fontWeight: 700, color: C_RED, fontFamily: F_BODY }}>
             {fmtN(critiques)} prises en situation critique
             <span style={{ fontWeight: 500, marginLeft: 6 }}>({Math.round(critiques / total * 100)}% des non-facturées)</span>
             — absentes depuis 3 bimestres ou plus
@@ -746,7 +746,7 @@ function SectionJamaisFacturees({ rows, total, annee }: { rows: JamaisRow[]; tot
   , [rows, sortCol, sortAsc])
 
   if (rows.length === 0) return (
-    <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 8, color: '#16a34a', fontSize: 12, fontWeight: 700, fontFamily: F_BODY }}>
+    <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 8, color: '#4a7c10', fontSize: 12, fontWeight: 700, fontFamily: F_BODY }}>
       ✓ Aucune prise n&apos;est restée sans facture toute l&apos;année {annee}
     </div>
   )
@@ -764,12 +764,12 @@ function SectionJamaisFacturees({ rows, total, annee }: { rows: JamaisRow[]; tot
   return (
     <div>
       {/* Bandeau alerte */}
-      <div style={{ margin: '0', padding: '12px 20px', background: 'rgba(153,27,27,.05)', borderBottom: '1px solid rgba(153,27,27,.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <ShieldAlert size={15} color="#991b1b" strokeWidth={2} style={{ flexShrink: 0 }} />
+      <div style={{ margin: '0', padding: '12px 20px', background: 'rgba(232,64,64,.05)', borderBottom: '1px solid rgba(232,64,64,.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <ShieldAlert size={15} color={C_RED} strokeWidth={2} style={{ flexShrink: 0 }} />
         <div style={{ fontSize: 12, fontFamily: F_BODY }}>
-          <span style={{ fontWeight: 900, color: '#991b1b' }}>{fmtN(total.prises)} prises</span>
+          <span style={{ fontWeight: 900, color: C_RED }}>{fmtN(total.prises)} prises</span>
           <span style={{ color: 'rgba(31,59,114,.6)', fontWeight: 600 }}> actives n&apos;ont reçu <strong>aucune facture</strong> en {annee} · CA annuel estimé : </span>
-          <span style={{ fontWeight: 900, color: '#991b1b' }}>{fmtFcfa(total.ca)}</span>
+          <span style={{ fontWeight: 900, color: C_RED }}>{fmtFcfa(total.ca)}</span>
           <span style={{ color: '#94a3b8', fontSize: 10, marginLeft: 8 }}>(CA moyen × nb bimestres disponibles)</span>
         </div>
       </div>
@@ -791,13 +791,13 @@ function SectionJamaisFacturees({ rows, total, annee }: { rows: JamaisRow[]; tot
             {sorted.map((r, i) => {
               const fib = FIABILITE_CFG[r.fiabilite] ?? FIABILITE_CFG.indicatif
               return (
-                <tr key={r.uo} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fff9f9', transition: 'background .1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#fef2f2')}
-                  onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fff9f9')}>
+                <tr key={r.uo} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fafbff', transition: 'background .1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f4f7ff')}
+                  onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fafbff')}>
                   <td style={{ padding: '9px 14px', textAlign: 'center', color: '#cbd5e1', fontSize: 10, fontWeight: 700 }}>{i + 1}</td>
                   <td style={{ padding: '9px 14px', fontWeight: 800, color: C_NAVY }}>{r.uo}</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 900, color: '#991b1b', fontSize: 13, fontFamily: F_TITLE }}>{fmtN(r.nb_prises)}</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 900, color: '#991b1b', fontFamily: F_TITLE, fontSize: 13 }}>{fmtFcfa(r.ca_manquant_annuel)}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 900, color: C_RED, fontSize: 13, fontFamily: F_TITLE }}>{fmtN(r.nb_prises)}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 900, color: C_RED, fontFamily: F_TITLE, fontSize: 13 }}>{fmtFcfa(r.ca_manquant_annuel)}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'right', color: '#94a3b8', fontSize: 11 }}>{fmtN(r.nb_obs_stratum)}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'center' }}>
                     <span style={{ background: fib.bg, color: fib.color, fontSize: 9, fontWeight: 700, padding: '3px 9px', borderRadius: 99, border: `1px solid ${fib.color}40` }}>
@@ -809,10 +809,10 @@ function SectionJamaisFacturees({ rows, total, annee }: { rows: JamaisRow[]; tot
             })}
           </tbody>
           <tfoot>
-            <tr style={{ background: 'rgba(153,27,27,.05)', borderTop: '2px solid rgba(153,27,27,.15)' }}>
-              <td colSpan={2} style={{ padding: '10px 14px', fontWeight: 900, color: '#991b1b', fontSize: 12 }}>TOTAL</td>
-              <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 900, color: '#991b1b', fontSize: 13 }}>{fmtN(total.prises)}</td>
-              <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 900, color: '#991b1b', fontFamily: F_TITLE, fontSize: 15 }}>{fmtFcfa(total.ca)}</td>
+            <tr style={{ background: 'rgba(232,64,64,.05)', borderTop: '2px solid rgba(232,64,64,.15)' }}>
+              <td colSpan={2} style={{ padding: '10px 14px', fontWeight: 900, color: C_RED, fontSize: 12 }}>TOTAL</td>
+              <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 900, color: C_RED, fontSize: 13 }}>{fmtN(total.prises)}</td>
+              <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 900, color: C_RED, fontFamily: F_TITLE, fontSize: 15 }}>{fmtFcfa(total.ca)}</td>
               <td colSpan={2} />
             </tr>
           </tfoot>
@@ -939,7 +939,7 @@ function SectionTournees({ rows }: { rows: TourneeRow[] }) {
                   <td style={{ padding: '7px 12px', textAlign: 'right', fontWeight: 900, color: C_RED }}>{fmtN(r.nb_non_fact)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: '#94a3b8' }}>{fmtN(r.nb_total)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right' }}>
-                    <span style={{ fontWeight: 800, color: r.taux_non_fact >= 50 ? C_RED : r.taux_non_fact >= 30 ? C_ORANGE : '#16a34a' }}>
+                    <span style={{ fontWeight: 800, color: r.taux_non_fact >= 50 ? C_RED : r.taux_non_fact >= 30 ? C_ORANGE : '#4a7c10' }}>
                       {r.taux_non_fact}%
                     </span>
                   </td>
@@ -962,8 +962,8 @@ function SectionTournees({ rows }: { rows: TourneeRow[] }) {
 /* ══════════════════════ SECTION DIAMÈTRES ═══════════════════════════════════ */
 const DIAM_ORDER = ['DN≤15', 'DN20', 'DN25', 'DN32', 'DN≤50', 'DN>50', 'Inconnu']
 const DIAM_COLORS: Record<string, string> = {
-  'DN≤15': '#3b82f6', 'DN20': '#6366f1', 'DN25': '#8b5cf6',
-  'DN32': '#a855f7', 'DN≤50': '#d946ef', 'DN>50': '#f43f5e', 'Inconnu': '#94a3b8',
+  'DN≤15': '#1F3B72', 'DN20': '#2B50A0', 'DN25': '#3a6bd4',
+  'DN32': '#5e8ed6', 'DN≤50': C_ORANGE,  'DN>50': C_RED, 'Inconnu': '#94a3b8',
 }
 
 function SectionDiametres({ rows }: { rows: DiametreRow[] }) {
@@ -1082,10 +1082,10 @@ function SectionRetourFacturation({ points, tauxMoyen, annee }: { points: Retour
 
       {/* Bandeau résumé */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ background: alertFaible ? 'rgba(232,64,64,.06)' : 'rgba(22,163,74,.06)', border: `1px solid ${alertFaible ? 'rgba(232,64,64,.2)' : 'rgba(22,163,74,.2)'}`, borderRadius: 12, padding: '14px 20px', flex: '1 1 200px' }}>
+        <div style={{ background: alertFaible ? 'rgba(232,64,64,.06)' : 'rgba(150,193,30,.07)', border: `1px solid ${alertFaible ? 'rgba(232,64,64,.2)' : 'rgba(150,193,30,.2)'}`, borderRadius: 12, padding: '14px 20px', flex: '1 1 200px' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(31,59,114,.4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6, fontFamily: F_BODY }}>Taux moyen de retour</div>
-          <div style={{ fontSize: 28, fontWeight: 900, fontFamily: F_TITLE, color: alertFaible ? C_RED : '#16a34a', lineHeight: 1 }}>{tauxMoyen}%</div>
-          <div style={{ fontSize: 10, color: alertFaible ? C_RED : '#16a34a', fontWeight: 700, marginTop: 4, fontFamily: F_BODY }}>
+          <div style={{ fontSize: 28, fontWeight: 900, fontFamily: F_TITLE, color: alertFaible ? C_RED : C_GREEN, lineHeight: 1 }}>{tauxMoyen}%</div>
+          <div style={{ fontSize: 10, color: alertFaible ? C_RED : '#4a7c10', fontWeight: 700, marginTop: 4, fontFamily: F_BODY }}>
             {alertFaible ? '⚠ Actions correctives insuffisantes' : '✓ Recouvrement actif'}
           </div>
         </div>
@@ -1095,7 +1095,7 @@ function SectionRetourFacturation({ points, tauxMoyen, annee }: { points: Retour
             const best = [...points].sort((a, b) => b.taux_retour - a.taux_retour)[0]
             return best ? (
               <>
-                <div style={{ fontSize: 20, fontWeight: 900, fontFamily: F_TITLE, color: '#16a34a' }}>{best.taux_retour}%</div>
+                <div style={{ fontSize: 20, fontWeight: 900, fontFamily: F_TITLE, color: C_GREEN }}>{best.taux_retour}%</div>
                 <div style={{ fontSize: 11, color: 'rgba(31,59,114,.55)', fontWeight: 600, marginTop: 3, fontFamily: F_BODY }}>{best.label} — {fmtN(best.nb_retour)} retours</div>
               </>
             ) : null
@@ -1146,14 +1146,14 @@ function SectionRetourFacturation({ points, tauxMoyen, annee }: { points: Retour
               return (
                 <div style={{ background: '#fff', border: '1px solid #e8edf5', borderRadius: 10, padding: '10px 14px', fontSize: 11, fontFamily: F_BODY, boxShadow: '0 4px 20px rgba(31,59,114,.12)' }}>
                   <div style={{ fontWeight: 800, color: C_NAVY, marginBottom: 6 }}>{label}</div>
-                  {t  && <div style={{ color: '#16a34a', fontWeight: 800 }}>Taux de retour : {t.value}%</div>}
+                  {t  && <div style={{ color: '#4a7c10', fontWeight: 800 }}>Taux de retour : {t.value}%</div>}
                   {nb && <div style={{ color: C_NAVY, marginTop: 2 }}>PDIs retournés : {fmtN(nb.value as number)}</div>}
                   {ab && <div style={{ color: '#94a3b8', marginTop: 2 }}>Absents B(N-1) : {fmtN(ab.value as number)}</div>}
                 </div>
               )
             }} />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 10, fontFamily: F_BODY }} />
-            <Line yAxisId="taux" type="monotone" dataKey="taux_retour"     name="Taux de retour (%)"  stroke="#16a34a" strokeWidth={2.5} dot={{ r: 5, fill: '#16a34a' }}   activeDot={{ r: 7 }} />
+            <Line yAxisId="taux" type="monotone" dataKey="taux_retour"     name="Taux de retour (%)"  stroke={C_GREEN} strokeWidth={2.5} dot={{ r: 5, fill: C_GREEN }}   activeDot={{ r: 7 }} />
             <Line yAxisId="nb"   type="monotone" dataKey="nb_retour"       name="PDIs retournés"       stroke={C_NAVY}  strokeWidth={2}   dot={{ r: 3, fill: C_NAVY }}   activeDot={{ r: 5 }} strokeDasharray="5 3" />
             <Line yAxisId="nb"   type="monotone" dataKey="nb_absents_prev" name="Absents bim. précéd." stroke="#94a3b8" strokeWidth={1.5} dot={{ r: 2, fill: '#94a3b8' }} activeDot={{ r: 4 }} strokeDasharray="3 3" />
           </LineChart>
@@ -1175,9 +1175,9 @@ function SectionRetourFacturation({ points, tauxMoyen, annee }: { points: Retour
               <tr key={p.label} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fafbff' }}>
                 <td style={{ padding: '9px 14px', fontWeight: 800, color: C_NAVY }}>B{p.bim_prev}→B{p.bim_curr} <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>{p.label_prev} → {p.label_curr}</span></td>
                 <td style={{ padding: '9px 14px', textAlign: 'right', color: C_RED, fontWeight: 700 }}>{fmtN(p.nb_absents_prev)}</td>
-                <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: '#16a34a' }}>{fmtN(p.nb_retour)}</td>
+                <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: '#4a7c10' }}>{fmtN(p.nb_retour)}</td>
                 <td style={{ padding: '9px 14px', textAlign: 'right' }}>
-                  <span style={{ fontWeight: 900, color: p.taux_retour >= 30 ? '#16a34a' : p.taux_retour >= 15 ? C_ORANGE : C_RED, fontFamily: F_TITLE, fontSize: 14 }}>{p.taux_retour}%</span>
+                  <span style={{ fontWeight: 900, color: p.taux_retour >= 30 ? '#4a7c10' : p.taux_retour >= 15 ? C_ORANGE : C_RED, fontFamily: F_TITLE, fontSize: 14 }}>{p.taux_retour}%</span>
                 </td>
               </tr>
             ))}
@@ -1478,7 +1478,7 @@ export default function RapportPrises() {
      RENDU
   ════════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f4f6fb', fontFamily: F_BODY, overflowY: 'auto' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc', fontFamily: F_BODY, overflowY: 'auto' }}>
       <style>{`@keyframes spin-rp { to { transform: rotate(360deg); } }`}</style>
 
       {/* ── Barre de filtres ──────────────────────────────────────────────── */}
@@ -1502,7 +1502,7 @@ export default function RapportPrises() {
           )}
 
           {!loading && !err && rows.length > 0 && (
-            <div style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, background: '#f4f6fb', border: '1px solid #e8edf5', fontSize: 11, fontWeight: 600, color: 'rgba(31,59,114,.5)', fontFamily: F_BODY, alignSelf: 'flex-end' }}>
+            <div style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e8edf5', fontSize: 11, fontWeight: 600, color: 'rgba(31,59,114,.5)', fontFamily: F_BODY, alignSelf: 'flex-end' }}>
               {periodeLabel} · {nbUo} UO concernées
             </div>
           )}
@@ -1523,7 +1523,7 @@ export default function RapportPrises() {
                 label="Prises facturées"
                 value={couverture.fact > 0 ? fmtN(couverture.fact) : '—'}
                 sub={couverture.parc > 0 ? `${Math.round(couverture.fact / couverture.parc * 100)}% du parc actif` : undefined}
-                accent="#16a34a"
+                accent={C_GREEN}
                 delta={couverturePrev ? { val: couverture.fact - couverturePrev.fact, label: `vs ${BIMESTRE_LABELS[String(parseInt(bimestre) - 1)] ?? 'bim. préc.'}`, positifBon: true } : undefined}
               />
               <KpiCard
@@ -1534,7 +1534,7 @@ export default function RapportPrises() {
                 delta={couverturePrev ? { val: couverture.nonFact - couverturePrev.nonFact, label: `vs ${BIMESTRE_LABELS[String(parseInt(bimestre) - 1)] ?? 'bim. préc.'}`, positifBon: false } : undefined}
               />
               <KpiCard label="CA manquant estimé" value={fmtFcfa(totalCa)} sub="Toutes UO confondues" accent={C_RED} />
-              <KpiCard label="UOs concernées" value={fmtN(nbUo)} sub="Secteurs avec écart" accent="#7c3aed" />
+              <KpiCard label="UOs concernées" value={fmtN(nbUo)} sub="Secteurs avec écart" accent={C_ORANGE} />
               {pireUo && <KpiCard label="UO la plus exposée" value={pireUo.uo} sub={fmtFcfa(pireUo.ca_manquant_estime) + ' manquants'} accent={C_RED} />}
               {rows.length === 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', background: 'rgba(150,193,30,.07)', borderRadius: 10, border: '1px solid rgba(150,193,30,.2)', color: '#4a7c10', fontSize: 13, fontWeight: 700, fontFamily: F_BODY }}>
@@ -1546,20 +1546,17 @@ export default function RapportPrises() {
             {rows.length > 0 && (
               <>
                 {/* ══ BARRE D'ONGLETS ══ */}
-                <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8edf5', boxShadow: '0 2px 12px rgba(31,59,114,.06)', overflow: 'hidden', position: 'sticky', top: 0, zIndex: 5 }}>
-                  <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ background: '#fff', border: '1px solid #e8edf5', borderRadius: 14, boxShadow: '0 2px 8px rgba(31,59,114,.05)', overflow: 'hidden', position: 'sticky', top: 0, zIndex: 5 }}>
+                  <div style={{ display: 'flex', borderBottom: '1px solid #e8edf5', flexWrap: 'wrap' }}>
                     {TABS.map(tab => {
                       const active = activeTab === tab.id
                       return (
                         <button key={tab.id} onClick={() => goTab(tab.id)}
-                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 10px', background: active ? '#fafbff' : 'transparent', border: 'none', borderBottom: `3px solid ${active ? C_NAVY : 'transparent'}`, cursor: 'pointer', transition: 'all .15s', outline: 'none' }}
-                          onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#f8fafc' }}
-                          onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
-                          <tab.Icon size={14} strokeWidth={active ? 2.5 : 2} />
-                          <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? C_NAVY : 'rgba(31,59,114,.45)', fontFamily: F_BODY, lineHeight: 1.2 }}>{tab.label}</div>
-                            <div style={{ fontSize: 9, color: active ? 'rgba(31,59,114,.5)' : '#cbd5e1', fontFamily: F_BODY, fontWeight: 500 }}>{tab.sub}</div>
-                          </div>
+                          style={{ padding: '10px 20px', border: 'none', cursor: 'pointer', fontFamily: F_BODY, fontSize: 12, fontWeight: active ? 800 : 600, color: active ? C_NAVY : 'rgba(31,59,114,.4)', background: active ? '#fff' : '#fafbfd', borderBottom: `2px solid ${active ? C_NAVY : 'transparent'}`, transition: 'all .15s', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6, outline: 'none' }}
+                          onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#f4f6fc'; e.currentTarget.style.color = C_NAVY } }}
+                          onMouseLeave={e => { if (!active) { e.currentTarget.style.background = '#fafbfd'; e.currentTarget.style.color = 'rgba(31,59,114,.4)' } }}>
+                          <tab.Icon size={13} strokeWidth={active ? 2.5 : 2} color={active ? C_NAVY : 'rgba(31,59,114,.35)'} />
+                          {tab.label}
                         </button>
                       )
                     })}

@@ -4,6 +4,10 @@ import { getCurrentUser } from '@/lib/auth'
 import TopBar from '@/components/TopBar'
 import Link from 'next/link'
 import { RefreshCw } from 'lucide-react'
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartTooltip, ReferenceLine, ResponsiveContainer, Cell,
+} from 'recharts'
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESIGN TOKENS — alignés sur les rapports (RapportRH / RapportFacturation)
@@ -12,7 +16,7 @@ const F_TITLE = "'Barlow Semi Condensed', sans-serif"
 const F_BODY  = "'Nunito', sans-serif"
 const C_NAVY  = '#1F3B72'
 const C_GREEN = '#96C11E'
-const C_RED   = '#D85C5C'
+const C_RED   = '#E84040'
 const C_PAGE  = '#f8fafc'
 
 // ─── rien ici : l'année est calculée dans le composant via lazy useState ──
@@ -433,83 +437,108 @@ const BIMESTRE_LABELS: Record<number, string> = {
 }
 
 function ChartBimestre({ rows, loading }: { rows: BimRow[]; loading: boolean }) {
-  const [hov, setHov] = useState<number | null>(null)
-  const sorted = [...rows].sort((a, b) => a.bimestre - b.bimestre)
-
   if (loading) return (
     <div style={{ padding: '0 22px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <Sk h={12} w={220} />
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 100, marginTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 120, marginTop: 12 }}>
         {[1,2,3,4,5,6].map(i => <Sk key={i} h={Math.random() * 60 + 30} w="100%" r={5} />)}
       </div>
     </div>
   )
-  if (!sorted.length) return null
 
-  const maxTaux = Math.max(100, ...sorted.map(r => r.taux_recouvrement))
+  const data = [...rows]
+    .sort((a, b) => a.bimestre - b.bimestre)
+    .map(r => ({
+      label: BIMESTRE_LABELS[r.bimestre] ?? `B${r.bimestre}`,
+      ca:    r.ca_total,
+      enc:   r.encaissement,
+      taux:  r.taux_recouvrement,
+      ok:    r.taux_recouvrement >= SEUIL.TAUX_OBJECTIF,
+    }))
+
+  if (!data.length) return null
+
+  const tauxVals = data.map(d => d.taux)
+  const minTaux  = Math.max(0, Math.min(...tauxVals) - 5)
+  const maxTaux  = Math.min(102, Math.max(...tauxVals) + 3)
 
   return (
     <div style={{ padding: '0 22px 20px' }}>
-      <div style={{
-        fontSize: 9, fontWeight: 800, textTransform: 'uppercase',
-        letterSpacing: '.09em', color: 'rgba(31,59,114,.3)',
-        fontFamily: F_BODY, marginBottom: 14,
-      }}>
-        Taux de recouvrement par bimestre
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 140, position: 'relative' }}>
-        {/* Ligne objectif */}
-        <div style={{
-          position: 'absolute', left: 0, right: 0,
-          bottom: `${(SEUIL.TAUX_OBJECTIF / maxTaux) * 100}%`,
-          borderTop: '1px dashed rgba(31,59,114,.18)', zIndex: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-          paddingRight: 4,
-        }}>
-          <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(31,59,114,.3)', fontFamily: F_BODY, background: '#fff', padding: '0 2px' }}>
-            {SEUIL.TAUX_OBJECTIF}%
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.09em', color: 'rgba(31,59,114,.3)', fontFamily: F_BODY }}>
+          Taux de recouvrement par bimestre
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'rgba(31,59,114,.4)', fontFamily: F_BODY, fontWeight: 600 }}>
+            <span style={{ width: 10, height: 3, borderRadius: 99, background: C_NAVY, display: 'inline-block' }} />CA
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'rgba(31,59,114,.4)', fontFamily: F_BODY, fontWeight: 600 }}>
+            <span style={{ width: 10, height: 3, borderRadius: 99, background: C_GREEN, display: 'inline-block' }} />Encaissé
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'rgba(31,59,114,.4)', fontFamily: F_BODY, fontWeight: 600 }}>
+            <span style={{ width: 10, height: 0, borderTop: '2px dashed rgba(232,64,64,.5)', display: 'inline-block' }} />Objectif
           </span>
         </div>
-
-        {sorted.map((r, i) => {
-          const ok      = r.taux_recouvrement >= SEUIL.TAUX_OBJECTIF
-          const warn    = r.taux_recouvrement >= SEUIL.TAUX_WARNING
-          const color   = ok ? C_GREEN : warn ? '#D97706' : C_RED
-          const cfg     = ok ? STATUS_CFG.ok : warn ? STATUS_CFG.warning : STATUS_CFG.critical
-          const hpct    = Math.max(4, (r.taux_recouvrement / maxTaux) * 100)
-          const isHov   = hov === i
-
-          return (
-            <div key={r.bimestre} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'relative', zIndex: 1 }}
-              onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)}>
-              {isHov && (
-                <div style={{
-                  position: 'absolute', bottom: '100%', marginBottom: 6,
-                  background: '#fff', border: `1px solid ${color}`,
-                  borderRadius: 8, padding: '6px 10px',
-                  fontSize: 11, fontWeight: 800, color, fontFamily: F_TITLE,
-                  whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(31,59,114,.12)', zIndex: 20,
-                }}>
-                  {fmt(r.taux_recouvrement, 1)} %
-                  <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(31,59,114,.4)', marginTop: 2 }}>
-                    {fmt(r.nb_factures)} factures
-                  </div>
-                </div>
-              )}
-              <div style={{
-                width: '100%', height: `${hpct}%`,
-                background: isHov ? color : `${color}bb`,
-                borderRadius: '5px 5px 0 0',
-                transition: 'all .15s', cursor: 'pointer',
-                border: isHov ? `1px solid ${color}` : '1px solid transparent',
-              }} />
-              <div style={{ fontSize: 8.5, fontWeight: 700, color: cfg.text, fontFamily: F_BODY, textAlign: 'center' }}>
-                {BIMESTRE_LABELS[r.bimestre] ?? `B${r.bimestre}`}
-              </div>
-            </div>
-          )
-        })}
       </div>
+      <ResponsiveContainer width="100%" height={190}>
+        <ComposedChart data={data} margin={{ top: 6, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f3f9" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 9, fontFamily: F_BODY, fill: 'rgba(31,59,114,.5)' }} axisLine={false} tickLine={false} />
+          <YAxis yAxisId="ca" orientation="left" tick={{ fontSize: 8, fontFamily: F_BODY, fill: 'rgba(31,59,114,.35)' }}
+            tickFormatter={v => fmtM(v)} width={54} axisLine={false} tickLine={false} />
+          <YAxis yAxisId="taux" orientation="right" domain={[minTaux, maxTaux]}
+            tick={{ fontSize: 8, fontFamily: F_BODY, fill: 'rgba(31,59,114,.35)' }}
+            tickFormatter={v => `${v}%`} width={34} axisLine={false} tickLine={false} />
+          <RechartTooltip content={({ active, payload, label: lbl }) => {
+            if (!active || !payload?.length) return null
+            const taux = (payload.find(p => p.name === 'taux')?.value as number) ?? 0
+            const ca   = (payload.find(p => p.name === 'ca')?.value   as number) ?? 0
+            const enc  = (payload.find(p => p.name === 'enc')?.value  as number) ?? 0
+            const ok   = taux >= SEUIL.TAUX_OBJECTIF
+            return (
+              <div style={{ background: '#fff', border: '1px solid #e8edf5', borderRadius: 12, padding: '10px 14px', boxShadow: '0 6px 24px rgba(31,59,114,.12)', fontFamily: F_BODY, minWidth: 175 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: C_NAVY, marginBottom: 7, fontFamily: F_TITLE }}>{lbl}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
+                    <span style={{ fontSize: 9, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>CA facturé</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C_NAVY }}>{fmtM(ca)} F</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
+                    <span style={{ fontSize: 9, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>Encaissé</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C_GREEN }}>{fmtM(enc)} F</span>
+                  </div>
+                  <div style={{ borderTop: '1px solid #f1f5f9', marginTop: 3, paddingTop: 5, display: 'flex', justifyContent: 'space-between', gap: 14 }}>
+                    <span style={{ fontSize: 9, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>Taux recvt</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: ok ? '#4a7c10' : C_RED }}>
+                      {fmt(taux, 1)}% {ok ? '✓' : '↓'}
+                    </span>
+                  </div>
+                  {!ok && (
+                    <div style={{ fontSize: 9, color: C_RED, fontWeight: 600, textAlign: 'right' }}>
+                      Δ objectif : {fmt(taux - SEUIL.TAUX_OBJECTIF, 1)}%
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          }} />
+          <ReferenceLine yAxisId="taux" y={SEUIL.TAUX_OBJECTIF} stroke={C_RED} strokeDasharray="5 3" strokeWidth={1.5} strokeOpacity={.55} />
+          <Bar yAxisId="ca" dataKey="ca" name="ca" radius={[4,4,0,0]} maxBarSize={40} opacity={.18}>
+            {data.map((_, i) => <Cell key={i} fill={C_NAVY} />)}
+          </Bar>
+          <Bar yAxisId="ca" dataKey="enc" name="enc" radius={[4,4,0,0]} maxBarSize={40} opacity={.55}>
+            {data.map((_, i) => <Cell key={i} fill={C_GREEN} />)}
+          </Bar>
+          <Line yAxisId="taux" dataKey="taux" name="taux" type="monotone"
+            stroke={C_NAVY} strokeWidth={2.5} dot={(props) => {
+              const { cx, cy, payload } = props
+              const color = payload.ok ? '#4a7c10' : C_RED
+              return <circle key={cx} cx={cx} cy={cy} r={4} fill={color} stroke="#fff" strokeWidth={2} />
+            }}
+            activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
     </div>
   )
 }

@@ -14,7 +14,7 @@ const TABS: { id: Tab; label: string; sub: string; Icon: React.ElementType; colo
   },
   {
     id: 'schedule', label: 'Planifier', sub: 'Envoi automatique par email',
-    Icon: CalendarClock, color: '#059669', accentBg: 'rgba(5,150,105,.07)',
+    Icon: CalendarClock, color: '#96C11E', accentBg: 'rgba(150,193,30,.07)',
   },
 ]
 
@@ -112,7 +112,7 @@ export default function SelfServicePage() {
                     <span style={{
                       position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
                       width: 32, height: 3, borderRadius: '0 0 4px 4px',
-                      background: t.id === 'generate' ? '#96C11E' : '#059669',
+                      background: t.id === 'generate' ? '#96C11E' : '#96C11E',
                     }} />
                   )}
                   <div style={{

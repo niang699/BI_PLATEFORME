@@ -1,6 +1,10 @@
 'use client'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { AlertTriangle, Check, X as XIcon } from 'lucide-react'
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartTooltip, ReferenceLine, ResponsiveContainer, Cell,
+} from 'recharts'
 
 /* ═══════════════════════════════ TYPES ════════════════════════════════════ */
 interface Filtres {
@@ -39,8 +43,24 @@ interface RecapData {
   par_dr: AggrRow[]; par_bimestre: AggrRow[]
 }
 
+interface CaRow {
+  label: string
+  nb_factures: number
+  ca_total: number
+  volume_total: number
+  encaissement: number
+  impaye: number
+  taux_recouvrement: number
+  prix_moyen_m3: number | null
+}
+interface CaBimRow {
+  bimestre: number; annee: number; nb_factures: number
+  ca_total: number; volume_total: number; encaissement: number; taux_recouvrement: number
+}
 interface CaData {
-  par_groupe: AggrRow[]; par_type: AggrRow[]; par_branchement: AggrRow[]; par_dr: AggrRow[]
+  par_groupe: CaRow[]; par_type: CaRow[]; par_branchement: CaRow[]
+  par_dr: CaRow[]; par_rgp: CaRow[]; par_comptable: CaRow[]
+  par_bimestre: CaBimRow[]
 }
 
 interface AgingRow {
@@ -294,7 +314,7 @@ function Tbl({ cols, rows }: {
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: F_BODY, fontSize: 12 }}>
         <thead>
-          <tr style={{ background: '#f4f6fb' }}>
+          <tr style={{ background: '#f8fafc' }}>
             {cols.map(c => (
               <th key={c.key} style={{ padding: '9px 14px', textAlign: c.align ?? (c.key === cols[0].key ? 'left' : 'right'), fontSize: 10, fontWeight: 700, color: 'rgba(31,59,114,.5)', textTransform: 'uppercase', letterSpacing: '.04em', borderBottom: '1px solid #e8edf5', whiteSpace: 'nowrap' }}>
                 {c.label}
@@ -346,9 +366,9 @@ function ChartClassementDR({ rows }: { rows: AggrRow[] }) {
   const rankColors = ['#F59E0B', '#94A3B8', '#CD7F32']
 
   const barColor = (t: number) => {
-    if (t >= OBJECTIF_TAUX) return { from: '#4ade80', to: '#16a34a' }
+    if (t >= OBJECTIF_TAUX) return { from: C_GREEN, to: '#4a7c10' }
     if (t >= 80)            return { from: '#fbbf24', to: C_ORANGE }
-    return                         { from: '#f87171', to: C_RED }
+    return                         { from: C_RED, to: '#b91c1c' }
   }
 
   return (
@@ -477,7 +497,7 @@ function ChartClassementDR({ rows }: { rows: AggrRow[] }) {
                         fontSize: 9.5, fontWeight: 700, letterSpacing: '.05em',
                         padding: '4px 9px', borderRadius: 99,
                         background: ok ? 'rgba(74,222,128,.12)' : 'rgba(248,113,113,.12)',
-                        color: ok ? '#4ade80' : '#f87171',
+                        color: ok ? C_GREEN : C_RED,
                         border: `1px solid ${ok ? 'rgba(74,222,128,.25)' : 'rgba(248,113,113,.25)'}`,
                       }}>
                         {ok ? 'OBJECTIF ATTEINT' : 'SOUS OBJECTIF'}
@@ -488,8 +508,8 @@ function ChartClassementDR({ rows }: { rows: AggrRow[] }) {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                       {[
                         { label: 'CA Total',   value: fmtFcfa(r.ca_total   ?? 0), color: '#94a3c8' },
-                        { label: 'Encaissé',   value: fmtFcfa(r.encaissement ?? 0), color: '#4ade80' },
-                        { label: 'Impayés',    value: fmtFcfa(r.impaye      ?? 0), color: '#f87171' },
+                        { label: 'Encaissé',   value: fmtFcfa(r.encaissement ?? 0), color: C_GREEN },
+                        { label: 'Impayés',    value: fmtFcfa(r.impaye      ?? 0), color: C_RED },
                       ].map(k => (
                         <div key={k.label}>
                           <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,.28)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 3 }}>{k.label}</div>
@@ -564,45 +584,223 @@ function TabRecap({ qs }: { qs: string }) {
 /* ── Chiffre d'Affaires ─────────────────────────────────────────────────── */
 function TabCA({ qs }: { qs: string }) {
   const { data, loading, err } = useCachedFetch<CaData>(`/api/rapports/ca?${qs}`)
-  const [view, setView] = useState<'groupe' | 'type' | 'branchement' | 'dr'>('groupe')
+  const [view, setView] = useState<'tendance' | 'groupe' | 'type' | 'branchement' | 'dr' | 'rgp' | 'comptable'>('tendance')
 
   if (loading) return <Loader />
   if (err) return <ErrMsg msg={err} />
   if (!data) return null
 
   const VIEWS = [
-    { key: 'groupe',      label: 'Groupe Facturation',  rows: data.par_groupe,      dimKey: 'label', dimLabel: 'Groupe' },
-    { key: 'type',        label: 'Type de Facture',     rows: data.par_type,        dimKey: 'label', dimLabel: 'Type' },
-    { key: 'branchement', label: 'Cat. Branchement',    rows: data.par_branchement, dimKey: 'label', dimLabel: 'Catégorie' },
-    { key: 'dr',          label: 'DR', rows: data.par_dr,          dimKey: 'label', dimLabel: 'DR' },
+    { key: 'tendance',    label: 'Tendance bimestrielle' },
+    { key: 'groupe',      label: 'Groupe Facturation' },
+    { key: 'rgp',         label: 'Catégorie RGP' },
+    { key: 'type',        label: 'Type de Facture' },
+    { key: 'branchement', label: 'Cat. Branchement' },
+    { key: 'comptable',   label: 'Cat. Comptable' },
+    { key: 'dr',          label: 'Par DR' },
   ] as const
 
-  const active = VIEWS.find(v => v.key === view)!
-  const total = active.rows.reduce((s, r) => s + (r.ca_total ?? 0), 0)
+  const tableViews: Record<string, CaRow[]> = {
+    groupe: data.par_groupe, type: data.par_type,
+    branchement: data.par_branchement, dr: data.par_dr,
+    rgp: data.par_rgp, comptable: data.par_comptable,
+  }
+
+  const activeRows = view !== 'tendance' ? tableViews[view] ?? [] : []
+  const total = activeRows.reduce((s, r) => s + r.ca_total, 0)
+
+  // KPIs globaux depuis les données bimestrielles
+  const caTotal   = data.par_bimestre.reduce((s, r) => s + r.ca_total, 0)
+  const volTotal  = data.par_bimestre.reduce((s, r) => s + r.volume_total, 0)
+  const encTotal  = data.par_bimestre.reduce((s, r) => s + r.encaissement, 0)
+  const prixMoyen = volTotal > 0 ? Math.round(caTotal / volTotal) : 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+      {/* ── KPIs globaux ── */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <KpiCard label="CA Total" value={fmtFcfa(caTotal)} sub="toutes périodes" />
+        <KpiCard label="Volume facturé" value={`${(volTotal / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} m³`} sub="consommation" accent={C_NAVY} />
+        <KpiCard label="Prix moyen au m³" value={`${fmtN(prixMoyen)} F`} sub="CA / volume" accent={C_ORANGE} />
+        <KpiCard label="Encaissements" value={fmtFcfa(encTotal)} sub="réglés" accent={C_GREEN} />
+      </div>
+
+      {/* ── Navigation onglets ── */}
       <Panel>
         <div style={{ display: 'flex', borderBottom: '1px solid #e8edf5', flexWrap: 'wrap' }}>
           {VIEWS.map(v => (
-            <button key={v.key} onClick={() => setView(v.key)} style={{ padding: '10px 16px', border: 'none', cursor: 'pointer', fontFamily: F_BODY, fontSize: 12, fontWeight: view === v.key ? 800 : 600, color: view === v.key ? C_NAVY : 'rgba(31,59,114,.4)', background: view === v.key ? '#fff' : '#fafbfd', borderBottom: view === v.key ? `2px solid ${C_NAVY}` : '2px solid transparent', transition: 'all .15s', whiteSpace: 'nowrap' }}>
+            <button key={v.key} onClick={() => setView(v.key)} style={{
+              padding: '10px 16px', border: 'none', cursor: 'pointer',
+              fontFamily: F_BODY, fontSize: 12,
+              fontWeight: view === v.key ? 800 : 600,
+              color: view === v.key ? C_NAVY : 'rgba(31,59,114,.4)',
+              background: view === v.key ? '#fff' : '#fafbfd',
+              borderBottom: view === v.key ? `2px solid ${C_NAVY}` : '2px solid transparent',
+              transition: 'all .15s', whiteSpace: 'nowrap',
+            }}>
               {v.label}
             </button>
           ))}
         </div>
-        <Tbl
-          cols={[
-            { key: active.dimKey, label: active.dimLabel },
-            { key: 'nb_factures', label: 'Factures', fmt: v => fmtN(v as number) },
-            { key: 'ca_total', label: 'CA Total', fmt: v => fmtFcfa(v as number) },
-            { key: 'ca_total', label: '% CA', fmt: (v) => fmtPct(total > 0 ? (v as number) * 100 / total : 0) },
-            { key: 'encaissement', label: 'Encaissement', fmt: v => fmtFcfa(v as number) },
-            { key: 'impaye', label: 'Impayés', fmt: v => fmtFcfa(v as number) },
-            { key: 'taux_recouvrement', label: 'Taux Recvt', fmt: v => <TauxBadge v={v as number} /> },
-          ]}
-          rows={active.rows as unknown as Record<string, unknown>[]}
-        />
+
+        {/* ── Vue Tendance bimestrielle ── */}
+        {view === 'tendance' && (
+          <div style={{ padding: '20px 24px' }}>
+            <SectionTitle>Évolution du CA et des encaissements par bimestre</SectionTitle>
+            {data.par_bimestre.length === 0
+              ? <div style={{ color: 'rgba(31,59,114,.35)', fontSize: 13, fontFamily: F_BODY }}>Aucune donnée</div>
+              : (() => {
+                  const bimData = [...data.par_bimestre]
+                    .sort((a, b) => a.bimestre - b.bimestre)
+                    .map(b => ({
+                      label: BIMESTRE_LABELS[b.bimestre] ?? `B${b.bimestre}`,
+                      ca:    b.ca_total,
+                      enc:   b.encaissement,
+                      taux:  b.taux_recouvrement,
+                      ok:    b.taux_recouvrement >= OBJECTIF_TAUX,
+                    }))
+                  const tauxVals = bimData.map(d => d.taux)
+                  const minTaux = Math.max(0, Math.min(...tauxVals) - 5)
+                  const maxTaux = Math.min(102, Math.max(...tauxVals) + 3)
+                  return (
+                    <>
+                      {/* Légende */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12, flexWrap: 'wrap' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.45)', fontFamily: F_BODY, fontWeight: 600 }}>
+                          <span style={{ width: 12, height: 3, borderRadius: 99, background: C_NAVY, display: 'inline-block' }} />CA facturé
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.45)', fontFamily: F_BODY, fontWeight: 600 }}>
+                          <span style={{ width: 12, height: 3, borderRadius: 99, background: C_GREEN, display: 'inline-block' }} />Encaissements
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(31,59,114,.45)', fontFamily: F_BODY, fontWeight: 600 }}>
+                          <span style={{ width: 12, height: 0, borderTop: '2px dashed rgba(232,64,64,.5)', display: 'inline-block' }} />Objectif
+                        </span>
+                      </div>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <ComposedChart data={bimData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f3f9" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: F_BODY, fill: 'rgba(31,59,114,.5)' }} axisLine={false} tickLine={false} />
+                          <YAxis yAxisId="ca" orientation="left" tick={{ fontSize: 9, fontFamily: F_BODY, fill: 'rgba(31,59,114,.35)' }}
+                            tickFormatter={v => fmtFcfa(v)} width={62} axisLine={false} tickLine={false} />
+                          <YAxis yAxisId="taux" orientation="right" domain={[minTaux, maxTaux]}
+                            tick={{ fontSize: 9, fontFamily: F_BODY, fill: 'rgba(31,59,114,.35)' }}
+                            tickFormatter={v => `${v}%`} width={38} axisLine={false} tickLine={false} />
+                          <RechartTooltip content={({ active, payload, label: lbl }) => {
+                            if (!active || !payload?.length) return null
+                            const taux = (payload.find(p => p.name === 'taux')?.value as number) ?? 0
+                            const ca   = (payload.find(p => p.name === 'ca')?.value   as number) ?? 0
+                            const enc  = (payload.find(p => p.name === 'enc')?.value  as number) ?? 0
+                            const ok   = taux >= OBJECTIF_TAUX
+                            return (
+                              <div style={{ background: '#fff', border: '1px solid #e8edf5', borderRadius: 12, padding: '12px 16px', boxShadow: '0 6px 24px rgba(31,59,114,.12)', fontFamily: F_BODY, minWidth: 190 }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, color: C_NAVY, marginBottom: 8, fontFamily: F_TITLE }}>{lbl}</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                    <span style={{ fontSize: 10, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>CA facturé</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: C_NAVY }}>{fmtFcfa(ca)}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                    <span style={{ fontSize: 10, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>Encaissé</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: C_GREEN }}>{fmtFcfa(enc)}</span>
+                                  </div>
+                                  <div style={{ borderTop: '1px solid #f1f5f9', marginTop: 4, paddingTop: 6, display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                    <span style={{ fontSize: 10, color: 'rgba(31,59,114,.5)', fontWeight: 600 }}>Taux recvt</span>
+                                    <span style={{ fontSize: 12, fontWeight: 800, color: ok ? '#4a7c10' : C_RED }}>
+                                      {fmtPct(taux)} {ok ? '✓' : '↓'}
+                                    </span>
+                                  </div>
+                                  {!ok && (
+                                    <div style={{ fontSize: 10, color: C_RED, fontWeight: 600, textAlign: 'right' }}>
+                                      Δ objectif : {fmtPct(taux - OBJECTIF_TAUX)}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }} />
+                          <ReferenceLine yAxisId="taux" y={OBJECTIF_TAUX} stroke={C_RED} strokeDasharray="5 3" strokeWidth={1.5} strokeOpacity={.55} />
+                          <Bar yAxisId="ca" dataKey="ca" name="ca" radius={[5,5,0,0]} maxBarSize={48} opacity={.18}>
+                            {bimData.map((_, i) => <Cell key={i} fill={C_NAVY} />)}
+                          </Bar>
+                          <Bar yAxisId="ca" dataKey="enc" name="enc" radius={[5,5,0,0]} maxBarSize={48} opacity={.55}>
+                            {bimData.map((_, i) => <Cell key={i} fill={C_GREEN} />)}
+                          </Bar>
+                          <Line yAxisId="taux" dataKey="taux" name="taux" type="monotone"
+                            stroke={C_NAVY} strokeWidth={2.5} dot={(props) => {
+                              const { cx, cy, payload } = props
+                              const color = payload.ok ? '#4a7c10' : C_RED
+                              return <circle key={cx} cx={cx} cy={cy} r={4} fill={color} stroke="#fff" strokeWidth={2} />
+                            }}
+                            activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </>
+                  )
+              })()
+            }
+          </div>
+        )}
+
+        {/* ── Vues tableau ── */}
+        {view !== 'tendance' && (
+          <Tbl
+            cols={[
+              { key: 'label',            label: VIEWS.find(v => v.key === view)?.label ?? '' },
+              { key: 'nb_factures',      label: 'Factures',     fmt: v => fmtN(v as number) },
+              { key: 'ca_total',         label: 'CA Total',     fmt: v => fmtFcfa(v as number) },
+              { key: 'ca_total',         label: '% CA',         fmt: v => fmtPct(total > 0 ? (v as number) * 100 / total : 0) },
+              { key: 'volume_total',     label: 'Volume m³',    fmt: v => (v as number) > 0 ? fmtN(Math.round(v as number)) : '—' },
+              { key: 'prix_moyen_m3',    label: 'Prix moy/m³',  fmt: v => v != null ? `${fmtN(v as number)} F` : '—' },
+              { key: 'encaissement',     label: 'Encaissement', fmt: v => fmtFcfa(v as number) },
+              { key: 'impaye',           label: 'Impayés',      fmt: v => fmtFcfa(v as number) },
+              { key: 'taux_recouvrement', label: 'Taux Recvt', fmt: v => <TauxBadge v={v as number} /> },
+            ]}
+            rows={activeRows as unknown as Record<string, unknown>[]}
+          />
+        )}
       </Panel>
+
+      {/* ── Pareto CA — concentration ── */}
+      {view !== 'tendance' && activeRows.length > 1 && (() => {
+        const sorted = [...activeRows].sort((a, b) => b.ca_total - a.ca_total)
+        let cumul = 0
+        const paretoRows = sorted.map(r => {
+          cumul += r.ca_total
+          return { ...r, cumul_pct: total > 0 ? cumul / total * 100 : 0 }
+        })
+        const idx80 = paretoRows.findIndex(r => r.cumul_pct >= 80)
+        const nb80  = idx80 >= 0 ? idx80 + 1 : paretoRows.length
+
+        return (
+          <Panel>
+            <div style={{ padding: '18px 22px' }}>
+              <SectionTitle>Concentration du CA — Pareto</SectionTitle>
+              <div style={{ fontSize: 12, color: 'rgba(31,59,114,.55)', fontFamily: F_BODY, marginBottom: 14 }}>
+                <span style={{ fontWeight: 800, color: C_NAVY }}>{nb80}</span> {nb80 > 1 ? 'éléments' : 'élément'} représentent{' '}
+                <span style={{ fontWeight: 800, color: C_NAVY }}>80%</span> du CA total
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {paretoRows.map((r, i) => {
+                  const pctRow = total > 0 ? r.ca_total / total * 100 : 0
+                  const is80   = i < nb80
+                  return (
+                    <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 130, fontSize: 11, fontWeight: 700, color: is80 ? C_NAVY : 'rgba(31,59,114,.4)', fontFamily: F_BODY, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</div>
+                      <div style={{ flex: 1, background: '#f0f3f9', borderRadius: 4, height: 16, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(pctRow * (100 / (paretoRows[0] ? paretoRows[0].ca_total / total * 100 : 1)), 100)}%`, height: '100%', background: is80 ? `linear-gradient(90deg,${C_NAVY},#3a5fa8)` : '#c8d3e8', borderRadius: 4, minWidth: pctRow > 0 ? 3 : 0 }} />
+                      </div>
+                      <div style={{ width: 80, textAlign: 'right', fontSize: 11, fontWeight: 700, color: is80 ? C_NAVY : 'rgba(31,59,114,.4)', fontFamily: F_BODY, flexShrink: 0 }}>{fmtFcfa(r.ca_total)}</div>
+                      <div style={{ width: 44, textAlign: 'right', fontSize: 10, fontWeight: 600, color: 'rgba(31,59,114,.4)', fontFamily: F_BODY, flexShrink: 0 }}>{fmtPct(r.cumul_pct)}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </Panel>
+        )
+      })()}
     </div>
   )
 }
@@ -657,7 +855,7 @@ function TabReglements({ qs }: { qs: string }) {
               {agingBands.map(b => (
                 <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 110, fontSize: 11, fontWeight: 700, color: 'rgba(31,59,114,.6)', fontFamily: F_BODY, flexShrink: 0 }}>{b.label}</div>
-                  <div style={{ flex: 1, background: '#f4f6fb', borderRadius: 6, height: 18, overflow: 'hidden' }}>
+                  <div style={{ flex: 1, background: '#f8fafc', borderRadius: 6, height: 18, overflow: 'hidden' }}>
                     <div style={{ width: `${Math.min(b.pct, 100)}%`, height: '100%', background: `linear-gradient(90deg,${C_GREEN},#b5e04f)`, borderRadius: 6, transition: 'width .4s', minWidth: b.val > 0 ? 4 : 0 }} />
                   </div>
                   <div style={{ width: 80, textAlign: 'right', fontSize: 11, fontWeight: 700, color: C_NAVY, fontFamily: F_BODY }}>{fmtFcfa(b.val)}</div>
@@ -992,7 +1190,7 @@ export default function RapportSenODS() {
   ] as const
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f4f6fb', fontFamily: F_BODY, overflowY: 'auto' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc', fontFamily: F_BODY, overflowY: 'auto' }}>
 
       {/* ── Barre de filtres ──────────────────────────────────────────── */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e8edf5', padding: '12px 24px', flexShrink: 0, boxShadow: '0 1px 4px rgba(31,59,114,.04)' }}>

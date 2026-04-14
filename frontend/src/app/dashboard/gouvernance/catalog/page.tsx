@@ -31,7 +31,7 @@ interface CatalogTable {
 
 /* ─── Palette ────────────────────────────────────────────────────────────────── */
 const BASE_COLOR:   Record<string, string> = { sen_dwh: '#1F3B72', sen_ods: '#0891B2' }
-const TYPE_COLOR:   Record<string, string> = { table: '#6b7280', vue_mat: '#8b5cf6', dimension: '#D97706', fait: '#059669' }
+const TYPE_COLOR:   Record<string, string> = { table: '#6b7280', vue_mat: '#8b5cf6', dimension: '#D97706', fait: '#96C11E' }
 const TYPE_LABEL:   Record<string, string> = { table: 'Table', vue_mat: 'Vue mat.', dimension: 'Dimension', fait: 'Fait' }
 const COL_TYPE_ICON: Record<string, React.ReactNode> = {
   text:    <Type    size={11} />,
@@ -157,7 +157,7 @@ const CATALOG: CatalogTable[] = [
 
 /* ─── Domaines & couleurs ────────────────────────────────────────────────────── */
 const DOMAINE_COLOR: Record<string, string> = {
-  RH:           '#059669',
+  RH:           '#96C11E',
   Facturation:  '#D97706',
   Releveurs:    '#8b5cf6',
   Référentiel:  '#0891B2',
@@ -205,7 +205,7 @@ function ColumnRow({ col }: { col: Column }) {
       </td>
       <td style={{ padding: '8px 12px', textAlign: 'center' }}>
         <span style={{ fontSize: 10, fontWeight: 600,
-          color: col.nullable === false ? '#059669' : 'rgba(31,59,114,.35)' }}>
+          color: col.nullable === false ? '#96C11E' : 'rgba(31,59,114,.35)' }}>
           {col.nullable === false ? 'NON NULL' : 'nullable'}
         </span>
       </td>

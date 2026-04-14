@@ -9,6 +9,7 @@ import RapportRecouvrementDT from './RapportRecouvrementDT'
 import RapportCarteClients   from './RapportCarteClients'
 import RapportPrises         from './RapportPrises'
 import RapportRH             from './RapportRH'
+import RapportACL            from './RapportACL'
 
 const DASH_BASE = process.env.NEXT_PUBLIC_DASH_URL || 'http://localhost:8050'
 
@@ -30,7 +31,7 @@ const F_BODY  = "'Nunito', sans-serif"
 const C_NAVY  = '#1F3B72'
 
 const STATUS_CFG = {
-  live:   { label: 'En direct', color: '#059669', bg: 'rgba(5,150,105,.10)',  dot: '#059669' },
+  live:   { label: 'En direct', color: '#96C11E', bg: 'rgba(150,193,30,.10)', dot: '#96C11E' },
   recent: { label: 'Récent',    color: '#d97706', bg: 'rgba(217,119,6,.10)',  dot: '#d97706' },
   stale:  { label: '> 24h',     color: '#E84040', bg: 'rgba(232,64,64,.10)',  dot: '#E84040' },
 }
@@ -220,6 +221,8 @@ export default function ViewerPage() {
         <RapportCarteClients />
       ) : id === 'prises-facturation' ? (
         <RapportPrises />
+      ) : id === 'acl-releveur' ? (
+        <RapportACL />
       ) : id === 'rh-dashboard' || id === 'rh-effectif' || id === 'rh-salaire' || id === 'rh-hs' || id === 'rh-formation' ? (
         <RapportRH />
       ) : (

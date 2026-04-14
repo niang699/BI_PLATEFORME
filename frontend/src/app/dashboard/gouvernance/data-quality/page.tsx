@@ -28,7 +28,7 @@ interface DqHistoryRow {
 }
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
-const scoreColor = (s: number) => s >= 90 ? '#059669' : s >= 75 ? '#D97706' : '#DC2626'
+const scoreColor = (s: number) => s >= 90 ? '#96C11E' : s >= 75 ? '#D97706' : '#DC2626'
 const scoreLabel = (s: number) => s >= 90 ? 'Excellent' : s >= 75 ? 'Acceptable' : s < 60 ? 'Critique' : 'À surveiller'
 const scoreIcon  = (s: number) =>
   s >= 90 ? <CheckCircle2 size={14} />
@@ -37,7 +37,7 @@ const scoreIcon  = (s: number) =>
 
 const DIM_COLORS: Record<string, string> = {
   completude: '#1F3B72', exactitude: '#96C11E', coherence: '#0891B2',
-  fraicheur:  '#8b5cf6', unicite:    '#D97706', conformite: '#059669',
+  fraicheur:  '#8b5cf6', unicite:    '#D97706', conformite: '#96C11E',
 }
 
 /* ─── Mini polygone SVG pour la modale ─────────────────────────────────────── */
@@ -85,7 +85,7 @@ function RadarGuideModal({ onClose }: { onClose: () => void }) {
       desc: 'Données mises à jour dans les délais', low: 'Retard de synchronisation — index non relevés depuis >48h' },
     { id: 'unicite', label: 'Unicité', weight: 7, color: '#D97706',
       desc: 'Absence de doublons', low: 'Doublons — même abonné enregistré deux fois' },
-    { id: 'conformite', label: 'Conformité', weight: 3, color: '#059669',
+    { id: 'conformite', label: 'Conformité', weight: 3, color: '#96C11E',
       desc: 'Formats respectés (email, tél…)', low: 'Format invalide — numéro à 7 chiffres, email sans @' },
   ]
   return (
@@ -119,11 +119,11 @@ function RadarGuideModal({ onClose }: { onClose: () => void }) {
           textTransform: 'uppercase', marginBottom: 14 }}>Formes typiques</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 }}>
 
-          <div style={{ padding: '16px 12px', borderRadius: 12, border: '1.5px solid #059669',
-            background: 'rgba(5,150,105,.04)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <MiniRadar points={[92, 88, 90, 85, 93, 91]} color="#059669"
+          <div style={{ padding: '16px 12px', borderRadius: 12, border: '1.5px solid #96C11E',
+            background: 'rgba(150,193,30,.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <MiniRadar points={[92, 88, 90, 85, 93, 91]} color="#96C11E"
               label="Hexagone large et régulier" />
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#059669', textAlign: 'center' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#96C11E', textAlign: 'center' }}>
               Qualité excellente
             </div>
             <div style={{ fontSize: 10, color: 'rgba(31,59,114,.55)', textAlign: 'center', lineHeight: 1.5 }}>
@@ -201,7 +201,7 @@ function MiniGauge({ score, label, sublabel }: { score: number; label: string; s
   const r = 32, cx = 40, cy = 40
   const circ = 2 * Math.PI * r
   const dash  = (score / 100) * circ * 0.75
-  const color = score >= 90 ? '#059669' : score >= 75 ? '#D97706' : score >= 60 ? '#F59E0B' : '#DC2626'
+  const color = score >= 90 ? '#96C11E' : score >= 75 ? '#D97706' : score >= 60 ? '#F59E0B' : '#DC2626'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <svg width={80} height={70} viewBox="0 0 80 80">
@@ -224,8 +224,8 @@ function MiniGauge({ score, label, sublabel }: { score: number; label: string; s
 /* ─── Modale guide Score Global ──────────────────────────────────────────────── */
 function ScoreGuideModal({ onClose }: { onClose: () => void }) {
   const zones = [
-    { score: 95, label: 'Excellent', range: '90 – 100', color: '#059669',
-      bg: 'rgba(5,150,105,.06)', border: '#059669',
+    { score: 95, label: 'Excellent', range: '90 – 100', color: '#96C11E',
+      bg: 'rgba(150,193,30,.07)', border: '#96C11E',
       desc: 'Données fiables et à jour. Les processus métier peuvent s\'appuyer sur ces données sans vérification manuelle supplémentaire.',
       actions: ['Maintenir la cadence de surveillance', 'Documenter les bonnes pratiques', 'Étendre les règles à d\'autres sources'] },
     { score: 80, label: 'Acceptable', range: '75 – 89', color: '#D97706',
@@ -325,7 +325,7 @@ function ScoreGuideModal({ onClose }: { onClose: () => void }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#1F3B72', letterSpacing: '.06em',
           textTransform: 'uppercase', marginBottom: 12 }}>Échelle de référence</div>
         <div style={{ position: 'relative', height: 28, borderRadius: 14, overflow: 'hidden',
-          background: 'linear-gradient(to right, #DC2626 0%, #F59E0B 30%, #D97706 50%, #059669 75%, #059669 100%)',
+          background: 'linear-gradient(to right, #DC2626 0%, #F59E0B 30%, #D97706 50%, #96C11E 75%, #96C11E 100%)',
           marginBottom: 6 }}>
           {[0, 60, 75, 90, 100].map(v => (
             <div key={v} style={{ position: 'absolute', left: `${v}%`, top: 0, bottom: 0,
@@ -542,7 +542,7 @@ export default function DataQualityPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4,
                         fontSize: 10, color: 'rgba(31,59,114,.4)' }}>
                         <span>{src.nb_rules} règles vérifiées</span>
-                        <span style={{ color: '#059669' }}>{src.nb_ok} OK</span>
+                        <span style={{ color: '#96C11E' }}>{src.nb_ok} OK</span>
                       </div>
                     </div>
                   ))}
@@ -625,11 +625,11 @@ export default function DataQualityPage() {
                     <Tooltip
                       contentStyle={{ fontSize: 11, borderRadius: 10,
                         border: '1px solid rgba(31,59,114,.12)', boxShadow: '0 4px 16px rgba(31,59,114,.1)' }}
-                      formatter={(v: unknown, name: string) => [`${v}`, name]}
+                      formatter={(v, name) => [`${v}`, `${name ?? ''}`]}
                       labelFormatter={l => `📅 ${l}`} />
                     {/* Lignes de seuil */}
-                    <ReferenceLine y={90} stroke="#059669" strokeDasharray="3 3" strokeOpacity={0.4}
-                      label={{ value: 'Excellent', position: 'right', fontSize: 8, fill: '#059669', opacity: 0.7 }} />
+                    <ReferenceLine y={90} stroke="#96C11E" strokeDasharray="3 3" strokeOpacity={0.4}
+                      label={{ value: 'Excellent', position: 'right', fontSize: 8, fill: '#96C11E', opacity: 0.7 }} />
                     <ReferenceLine y={75} stroke="#D97706" strokeDasharray="3 3" strokeOpacity={0.4}
                       label={{ value: 'Acceptable', position: 'right', fontSize: 8, fill: '#D97706', opacity: 0.7 }} />
                     <ReferenceLine y={60} stroke="#DC2626" strokeDasharray="3 3" strokeOpacity={0.4}
@@ -645,7 +645,7 @@ export default function DataQualityPage() {
                       <Line type="monotone" dataKey="coherence"   name="Cohérence"   stroke="#0891B2" strokeWidth={1} strokeDasharray="4 2" dot={false} strokeOpacity={0.8} />
                       <Line type="monotone" dataKey="fraicheur"   name="Fraîcheur"   stroke="#8b5cf6" strokeWidth={1} strokeDasharray="4 2" dot={false} strokeOpacity={0.8} />
                       <Line type="monotone" dataKey="unicite"     name="Unicité"     stroke="#D97706" strokeWidth={1} strokeDasharray="4 2" dot={false} strokeOpacity={0.8} />
-                      <Line type="monotone" dataKey="conformite"  name="Conformité"  stroke="#059669" strokeWidth={1} strokeDasharray="4 2" dot={false} strokeOpacity={0.8} />
+                      <Line type="monotone" dataKey="conformite"  name="Conformité"  stroke="#96C11E" strokeWidth={1} strokeDasharray="4 2" dot={false} strokeOpacity={0.8} />
                       <Legend iconType="line" iconSize={12}
                         wrapperStyle={{ fontSize: 10, color: 'rgba(31,59,114,.6)', paddingTop: 8 }} />
                     </>}
@@ -783,7 +783,7 @@ export default function DataQualityPage() {
                           {r.nb_total.toLocaleString('fr-FR')}
                         </td>
                         <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600,
-                          color: r.nb_ko > 0 ? '#DC2626' : '#059669', fontVariantNumeric: 'tabular-nums' }}>
+                          color: r.nb_ko > 0 ? '#DC2626' : '#96C11E', fontVariantNumeric: 'tabular-nums' }}>
                           {r.nb_ko.toLocaleString('fr-FR')}
                         </td>
                         <td style={{ padding: '10px 12px' }}>

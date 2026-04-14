@@ -9,7 +9,7 @@ const F_BODY  = "'Nunito', sans-serif"
 const C_NAVY  = '#1F3B72'
 
 const STATUS_CONFIG = {
-  live:   { label: 'En direct', color: '#16a34a', bg: 'rgba(22,163,74,.08)'  },
+  live:   { label: 'En direct', color: '#96C11E', bg: 'rgba(150,193,30,.10)' },
   recent: { label: 'Récent',    color: '#d97706', bg: 'rgba(217,119,6,.08)'  },
   stale:  { label: '> 24h',     color: '#E84040', bg: 'rgba(232,64,64,.08)'  },
 }

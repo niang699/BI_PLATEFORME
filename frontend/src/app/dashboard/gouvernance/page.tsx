@@ -16,9 +16,9 @@ const NB_PRIORITE1 = INDICATEURS.filter(i => i.priorite === 1).length
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 const fmt        = (v:number) => Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1)
 const tendIcon   = (t:string) => t==="hausse"?"↑":t==="baisse"?"↓":"→"
-const tendColor  = (t:string) => t==="hausse"?"#059669":t==="baisse"?"#DC2626":"#6b7280"
+const tendColor  = (t:string) => t==="hausse"?"#96C11E":t==="baisse"?"#DC2626":"#6b7280"
 const TYPE_COLORS: Record<string,string> = {
-  Qualité:"#1F3B72", Sécurité:"#DC2626", Environnement:"#059669",
+  Qualité:"#1F3B72", Sécurité:"#DC2626", Environnement:"#96C11E",
   Financier:"#D97706", Performance:"#7C3AED",
 }
 const GT_COLORS: Record<string,string> = {
@@ -524,7 +524,7 @@ function IndRow({ ind,color,zebra,onClick }:{ ind:Indicateur;color:string;zebra:
       <span style={{ fontSize:10,color:'var(--text-faint)',textAlign:'center' }}>{ind.frequence_maj}</span>
       <span style={{ fontSize:12,fontWeight:700,color:'var(--text-primary)',textAlign:'right' }}>{fmt(ind.valeur_actuelle)}</span>
       <span style={{ fontSize:14,fontWeight:700,color:tendColor(ind.tendance),textAlign:'center' }}>{tendIcon(ind.tendance)}</span>
-      <span style={{ fontSize:13,textAlign:'center',color:ind.atteint_cible?'#059669':'var(--text-faint)' }}>{ind.atteint_cible?'✓':'·'}</span>
+      <span style={{ fontSize:13,textAlign:'center',color:ind.atteint_cible?'#96C11E':'var(--text-faint)' }}>{ind.atteint_cible?'✓':'·'}</span>
     </div>
   )
 }
@@ -604,7 +604,7 @@ function PanneauServices({ onSelect }:{ onSelect:(i:Indicateur)=>void }) {
                 </div>
                 <div style={{ display:'flex',justifyContent:'space-between',fontSize:10 }}>
                   <span style={{ color:'var(--text-faint)' }}>Cibles atteintes</span>
-                  <span style={{ fontWeight:700,color:s.pct>=60?'#059669':'#DC2626' }}>{s.pct}%</span>
+                  <span style={{ fontWeight:700,color:s.pct>=60?'#96C11E':'#DC2626' }}>{s.pct}%</span>
                 </div>
               </div>
             ))}
@@ -668,7 +668,7 @@ function PanneauServices({ onSelect }:{ onSelect:(i:Indicateur)=>void }) {
                     <div style={{ fontSize:12,fontWeight:700,color:'var(--text-primary)' }}>{fmt(ind.valeur_actuelle)}</div>
                     <div style={{ fontSize:12,color:tendColor(ind.tendance),fontWeight:700 }}>{tendIcon(ind.tendance)}</div>
                   </div>
-                  <span style={{ fontSize:13,color:ind.atteint_cible?'#059669':'var(--text-faint)' }}>
+                  <span style={{ fontSize:13,color:ind.atteint_cible?'#96C11E':'var(--text-faint)' }}>
                     {ind.atteint_cible?'✓':'·'}
                   </span>
                 </div>
@@ -762,7 +762,7 @@ function PanneauProcessus({ onSelect }:{ onSelect:(i:Indicateur)=>void }) {
                       </div>
                       <div style={{ display:'flex',justifyContent:'space-between',marginTop:5,fontSize:9 }}>
                         <span style={{ color:'var(--text-faint)' }}>Cibles</span>
-                        <span style={{ fontWeight:700,color:s.pct>=60?'#059669':'#DC2626' }}>{s.pct}%</span>
+                        <span style={{ fontWeight:700,color:s.pct>=60?'#96C11E':'#DC2626' }}>{s.pct}%</span>
                       </div>
                     </div>
                   ))}
@@ -849,7 +849,7 @@ function PanneauCalcules({ onSelect }:{ onSelect:(i:Indicateur)=>void }) {
         background:'#fff', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
         {[
           { label:'Calculés', v:NB_CALCULES, color:'#D97706' },
-          { label:'Cibles ✓', v:atteint,    color:'#059669' },
+          { label:'Cibles ✓', v:atteint,    color:'#96C11E' },
           { label:'Sous obj.', v:NB_CALCULES-atteint, color:'#DC2626' },
         ].map(s=>(
           <div key={s.label} style={{ display:'flex',alignItems:'center',gap:8,
@@ -916,7 +916,7 @@ function PanneauCalcules({ onSelect }:{ onSelect:(i:Indicateur)=>void }) {
               </span>
               <span style={{ fontSize:11,color:'var(--text-muted)',textAlign:'center' }}>{ind.objectif_cible}</span>
               <span style={{ fontSize:14,textAlign:'center',
-                color:ind.atteint_cible?'#059669':'#DC2626',fontWeight:700 }}>
+                color:ind.atteint_cible?'#96C11E':'#DC2626',fontWeight:700 }}>
                 {ind.atteint_cible?'✓':'✗'}
               </span>
             </div>
@@ -993,7 +993,7 @@ function PanelContent({ ind,onClose }:{ ind:Indicateur; onClose:()=>void }) {
             <div style={{ fontSize:9,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',
               color:'rgba(31,59,114,.35)',marginBottom:4 }}>Tendance</div>
             <div style={{ fontSize:20,fontWeight:800,
-              color:ind.tendance==='hausse'?'#059669':ind.tendance==='baisse'?'#E84040':'rgba(31,59,114,.4)' }}>
+              color:ind.tendance==='hausse'?'#96C11E':ind.tendance==='baisse'?'#E84040':'rgba(31,59,114,.4)' }}>
               {tendIcon(ind.tendance)} {ind.tendance}
             </div>
           </div>
@@ -1136,8 +1136,8 @@ function SectionSources() {
             <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8 }}>
               <span style={{ fontSize:13,fontWeight:700,color:'var(--text-primary)' }}>{ds.name}</span>
               <span style={{ fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:20,
-                background:ds.status==='live'?'rgba(5,150,105,.12)':'rgba(245,158,11,.12)',
-                color:ds.status==='live'?'#059669':'#d97706' }}>
+                background:ds.status==='live'?'rgba(150,193,30,.12)':'rgba(245,158,11,.12)',
+                color:ds.status==='live'?'#96C11E':'#d97706' }}>
                 {ds.status==='live'?'● Actif':'● Récent'}
               </span>
             </div>
@@ -1190,7 +1190,7 @@ function SectionQualite() {
             </div>
             <div style={{ display:'flex',justifyContent:'space-between',marginTop:6 }}>
               <span style={{ fontSize:9,color:'var(--text-faint)' }}>Cible 95%</span>
-              <span style={{ fontSize:9,fontWeight:700,color:m.value>=95?'#059669':'#dc2626' }}>{m.value>=95?'✓ OK':'⚠ Sous cible'}</span>
+              <span style={{ fontSize:9,fontWeight:700,color:m.value>=95?'#96C11E':'#dc2626' }}>{m.value>=95?'✓ OK':'⚠ Sous cible'}</span>
             </div>
           </div>
         ))}
@@ -1407,8 +1407,8 @@ function JalonDetail({ jalon, phaseColor, onClose }: {
                 <div key={i} style={{
                   display:'flex', alignItems:'flex-start', gap:10,
                   padding:'8px 10px', borderRadius:9,
-                  background: st.statut==='FAIT' ? 'rgba(5,150,105,.04)' : '#fafbfe',
-                  border:`1px solid ${st.statut==='FAIT'?'rgba(5,150,105,.12)':'rgba(31,59,114,.07)'}`,
+                  background: st.statut==='FAIT' ? 'rgba(150,193,30,.05)' : '#fafbfe',
+                  border:`1px solid ${st.statut==='FAIT'?'rgba(150,193,30,.12)':'rgba(31,59,114,.07)'}`,
                 }}>
                   <div style={{
                     width:18, height:18, borderRadius:5, flexShrink:0, marginTop:1,
@@ -1479,7 +1479,7 @@ function SectionFeuilleDeRoute() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom: deadlineAlerts.length > 0 ? 14 : 18 }}>
         {([
           { l:'Jalons totaux', v:stats.total,   c:'#1F3B72', bg:'rgba(31,59,114,.07)'   },
-          { l:'Réalisés',      v:stats.fait,    c:'#059669', bg:'rgba(5,150,105,.07)'   },
+          { l:'Réalisés',      v:stats.fait,    c:'#96C11E', bg:'rgba(150,193,30,.08)'   },
           { l:'En cours',      v:stats.enCours, c:'#D97706', bg:'rgba(217,119,6,.07)'   },
           { l:'À planifier',   v:stats.aFaire,  c:'#6B7280', bg:'rgba(107,114,128,.07)' },
         ] as { l:string;v:number;c:string;bg:string }[]).map(k => (
@@ -1615,7 +1615,7 @@ function SectionFeuilleDeRoute() {
           <div style={{ width:LEFT_W, flexShrink:0, borderRight:'1px solid #e8eef7',
             padding:'0 16px', display:'flex', alignItems:'flex-end', paddingBottom:7 }}>
             <div style={{ display:'flex', gap:12 }}>
-              {([['#059669','Fait'],['#D97706','En cours'],['#9CA3AF','À faire'],['#6366f1','Permanent']] as [string,string][]).map(([c,l])=>(
+              {([['#96C11E','Fait'],['#D97706','En cours'],['#9CA3AF','À faire'],['#6366f1','Permanent']] as [string,string][]).map(([c,l])=>(
                 <div key={l} style={{ display:'flex', alignItems:'center', gap:4 }}>
                   <div style={{ width:7, height:7, borderRadius:99, background:c }} />
                   <span style={{ fontSize:9, color:'var(--text-faint)' }}>{l}</span>
@@ -1678,8 +1678,8 @@ function SectionFeuilleDeRoute() {
                 </div>
               </div>
               <div style={{ flex:1, padding:'8px 12px', display:'flex', alignItems:'center', gap:12 }}>
-                <span style={{ fontSize:9, fontWeight:700, color:'#059669',
-                  background:'rgba(5,150,105,.08)', padding:'2px 8px', borderRadius:20 }}>
+                <span style={{ fontSize:9, fontWeight:700, color:'#96C11E',
+                  background:'rgba(150,193,30,.10)', padding:'2px 8px', borderRadius:20 }}>
                   ✓ {phase.jalons.filter(j=>j.statut==='FAIT').length} fait{phase.jalons.filter(j=>j.statut==='FAIT').length>1?'s':''}
                 </span>
                 <span style={{ fontSize:9, fontWeight:700, color:'#D97706',
@@ -1702,7 +1702,7 @@ function SectionFeuilleDeRoute() {
               const stTotal  = jalon.sousTaches.length
 
               // Couleur barre
-              const barColor = jalon.statut==='FAIT'      ? '#059669'
+              const barColor = jalon.statut==='FAIT'      ? '#96C11E'
                              : jalon.statut==='EN COURS'  ? '#D97706'
                              : jalon.statut==='Permanent' ? '#6366f1'
                              : '#9CA3AF'
@@ -1844,7 +1844,7 @@ function SectionFeuilleDeRoute() {
             <span style={{ fontSize:9.5, fontWeight:700, color:'rgba(31,59,114,.5)' }}>Avancement :</span>
             <div style={{ flex:1, background:'#e8eef7', borderRadius:99, height:6, overflow:'hidden' }}>
               <div style={{ display:'flex', height:'100%' }}>
-                <div style={{ width:`${pctFait}%`, background:'#059669', transition:'width .6s' }} />
+                <div style={{ width:`${pctFait}%`, background:'#96C11E', transition:'width .6s' }} />
                 <div style={{ width:`${pctEnCours}%`, background:'#D97706', transition:'width .6s' }} />
               </div>
             </div>

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import {
   Plus, Trash2, Play, Pencil,
-  Mail, Clock, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight,
+  Mail, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight,
 } from 'lucide-react'
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -58,7 +58,7 @@ const FREQUENCES = [
   { id: 'monthly', label: 'Mensuel',      detail: 'Le 1er de chaque mois à 7h00' },
 ]
 const FREQ_COLOR: Record<string, string> = {
-  daily: '#DC2626', weekly: '#D97706', monthly: '#059669',
+  daily: '#DC2626', weekly: '#D97706', monthly: '#96C11E',
 }
 
 const EMPTY_FORM = {
@@ -87,7 +87,6 @@ export default function RapportsPlanifiesPanel() {
   const [saving,       setSaving]       = useState(false)
   const [testing,      setTesting]      = useState<number | null>(null)
   const [toast,        setToast]        = useState<{ msg: string; ok: boolean } | null>(null)
-  const [origin,       setOrigin]       = useState('https://portal.seneau.sn')
   const [groupesDispo, setGroupesDispo] = useState<string[]>([])
 
   const load = () => {
@@ -99,7 +98,6 @@ export default function RapportsPlanifiesPanel() {
   }
 
   useEffect(() => {
-    setOrigin(window.location.origin)
     load()
     fetch('/api/filtres')
       .then(r => r.json())
@@ -203,7 +201,7 @@ export default function RapportsPlanifiesPanel() {
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         {[
           { label: 'Total planifications', value: plans.length,  color: '#1F3B72',  bg: 'rgba(31,59,114,.07)'  },
-          { label: 'Actives',              value: actifCount,    color: '#059669',  bg: 'rgba(5,150,105,.08)'  },
+          { label: 'Actives',              value: actifCount,    color: '#96C11E',  bg: 'rgba(150,193,30,.10)'  },
           { label: 'Inactives',            value: plans.length - actifCount, color: '#6b7280', bg: 'rgba(107,114,128,.08)' },
           { label: 'Erreurs',              value: plans.filter(p => p.dernier_statut === 'error').length, color: '#DC2626', bg: 'rgba(220,38,38,.07)' },
         ].map(s => (
@@ -230,24 +228,6 @@ export default function RapportsPlanifiesPanel() {
         </div>
       </div>
 
-      {/* ── Info cron ── */}
-      <div style={{
-        background: 'rgba(150,193,30,.07)', border: '1px solid rgba(150,193,30,.2)',
-        borderRadius: 12, padding: '13px 18px', marginBottom: 20,
-        display: 'flex', gap: 10, alignItems: 'flex-start',
-      }}>
-        <Clock size={14} style={{ color: '#5a7a10', flexShrink: 0, marginTop: 2 }} />
-        <div style={{ fontSize: 11.5, color: '#5a7a10', lineHeight: 1.65 }}>
-          <strong>Déclenchement automatique (cron Linux)</strong> — Ajoutez cette ligne dans votre crontab :<br />
-          <code style={{
-            display: 'inline-block', marginTop: 5,
-            background: 'rgba(90,122,16,.1)', borderRadius: 5,
-            padding: '4px 10px', fontFamily: 'monospace', fontSize: 10.5,
-          }}>
-            0 7 * * * curl -s -X POST {origin}/api/scheduler/run -H &quot;Authorization: Bearer $SCHEDULER_SECRET&quot;
-          </code>
-        </div>
-      </div>
 
       {/* ── Liste ── */}
       {loading ? (
@@ -292,13 +272,13 @@ export default function RapportsPlanifiesPanel() {
                   width: 42, height: 42, borderRadius: 11, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: plan.dernier_statut === 'error' ? 'rgba(220,38,38,.08)'
-                    : plan.dernier_statut === 'ok' ? 'rgba(5,150,105,.08)'
+                    : plan.dernier_statut === 'ok' ? 'rgba(150,193,30,.10)'
                     : 'rgba(31,59,114,.06)',
                 }}>
                   {plan.dernier_statut === 'error'
                     ? <AlertCircle  size={18} style={{ color: '#DC2626' }} />
                     : plan.dernier_statut === 'ok'
-                    ? <CheckCircle2 size={18} style={{ color: '#059669' }} />
+                    ? <CheckCircle2 size={18} style={{ color: '#96C11E' }} />
                     : <Mail         size={18} style={{ color: 'rgba(31,59,114,.35)' }} />}
                 </div>
 
@@ -358,7 +338,7 @@ export default function RapportsPlanifiesPanel() {
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 6,
                       borderRadius: 8, display: 'flex', alignItems: 'center',
-                      color: plan.actif ? '#059669' : 'rgba(31,59,114,.28)',
+                      color: plan.actif ? '#96C11E' : 'rgba(31,59,114,.28)',
                     }}>
                     {plan.actif ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
                   </button>
@@ -543,11 +523,11 @@ export default function RapportsPlanifiesPanel() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                    color: form.actif ? '#059669' : 'rgba(31,59,114,.28)' }}>
+                    color: form.actif ? '#96C11E' : 'rgba(31,59,114,.28)' }}>
                   {form.actif ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                 </button>
                 <span style={{ fontSize: 12, fontWeight: 600,
-                  color: form.actif ? '#059669' : 'rgba(31,59,114,.4)' }}>
+                  color: form.actif ? '#96C11E' : 'rgba(31,59,114,.4)' }}>
                   {form.actif ? 'Planification active' : 'Planification inactive'}
                 </span>
               </div>
@@ -589,7 +569,7 @@ export default function RapportsPlanifiesPanel() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 2000,
-          background: toast.ok ? '#059669' : '#DC2626', color: '#fff',
+          background: toast.ok ? '#96C11E' : '#DC2626', color: '#fff',
           borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600,
           boxShadow: '0 8px 28px rgba(0,0,0,.22)',
           display: 'flex', alignItems: 'center', gap: 9,
