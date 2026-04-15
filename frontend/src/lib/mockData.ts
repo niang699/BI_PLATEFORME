@@ -200,6 +200,20 @@ export const REPORTS: Report[] = [
     accessRoles: ['super_admin', 'admin_metier', 'analyste'],
   },
   {
+    id: 'acl-releveur',
+    title: 'Suivi Recouvrement ACL',
+    description: 'Matrice recouvrement par Direction × Secteur — tranches aging tj=0, tj+15, tj+30 et solde résiduel. Performance ACL (releveurs).',
+    category: 'facturation',
+    url: '',
+    external: false,
+    owner: 'Direction Clientèle',
+    lastRefresh: _ago(15 * 60 * 1000),
+    status: 'live',
+    pinned: true,
+    tags: ['ACL', 'Releveur', 'Aging', 'Recouvrement', 'DR', 'Secteur'],
+    accessRoles: ['super_admin', 'admin_metier', 'analyste', 'lecteur_dt'],
+  },
+  {
     id: 'production-eau',
     title: 'Production & Distribution',
     description: 'Volumes produits, pertes réseau, pression et qualité de l\'eau par zone.',
@@ -375,6 +389,70 @@ export const DEMO_CREDENTIALS = [
   { email: 'younes.hachami@seneau.sn',password: 'analyste2025', role: 'Analyste' },
   { email: 'f.sarr@seneau.sn',        password: 'lecteur2025',  role: 'Lecteur DR Ziguinchor' },
   { email: 'o.diallo@seneau.sn',      password: 'rufisque2025', role: 'Lecteur DR Rufisque' },
+]
+
+// ─── Commentaires rapports ───────────────────────────────────────────────────
+
+export interface CommentReply {
+  id: string
+  authorId: string
+  authorName: string
+  authorAvatar: string
+  authorRole: Role
+  content: string
+  createdAt: string
+}
+
+export interface ReportComment {
+  id: string
+  reportId: string
+  authorId: string
+  authorName: string
+  authorAvatar: string
+  authorRole: Role
+  content: string
+  createdAt: string
+  resolved: boolean
+  resolvedBy?: string
+  replies: CommentReply[]
+}
+
+const _ago2 = (ms: number) => new Date(Date.now() - ms).toISOString()
+
+export const MOCK_COMMENTS: ReportComment[] = [
+  {
+    id: 'c1', reportId: 'facturation',
+    authorId: '2', authorName: 'Syaka Sane', authorAvatar: 'SS', authorRole: 'admin_metier',
+    content: 'Le CA de mars est en légère baisse sur la DR Dakar 2 — campagne de migration compteur en cours, impact attendu jusqu\'à mi-avril.',
+    createdAt: _ago2(2 * 3600000), resolved: false,
+    replies: [
+      {
+        id: 'r1', authorId: '1', authorName: 'Asta Niang', authorAvatar: 'AN', authorRole: 'super_admin',
+        content: 'Noté, je vais surveiller l\'évolution sur les 2 prochaines semaines.', createdAt: _ago2(1 * 3600000),
+      }
+    ]
+  },
+  {
+    id: 'c2', reportId: 'facturation',
+    authorId: '4', authorName: 'Younes Hachami', authorAvatar: 'YH', authorRole: 'analyste',
+    content: 'Anomalie détectée sur le secteur Pikine : 47 prises facturées en doublon ce mois-ci. À corriger en urgence avant la clôture.',
+    createdAt: _ago2(5 * 3600000), resolved: true, resolvedBy: 'Asta Niang',
+    replies: []
+  },
+  {
+    id: 'c3', reportId: 'recouvrement-dt',
+    authorId: '1', authorName: 'Asta Niang', authorAvatar: 'AN', authorRole: 'super_admin',
+    content: 'Taux de recouvrement DR Thiès en forte progression (+8 pts) — actions de terrain payantes. Partager ce retour en réunion mensuelle.',
+    createdAt: _ago2(24 * 3600000), resolved: false,
+    replies: []
+  },
+  {
+    id: 'c4', reportId: 'prises-facturation',
+    authorId: '8', authorName: 'Abdou Khadir Gaye', authorAvatar: 'AG', authorRole: 'analyste',
+    content: '320 prises jamais facturées identifiées sur DR Saint-Louis. Données validées avec l\'équipe terrain. Escalade nécessaire.',
+    createdAt: _ago2(3 * 24 * 3600000), resolved: false,
+    replies: []
+  },
 ]
 
 // ─── Stats globales ──────────────────────────────────────────────────────────

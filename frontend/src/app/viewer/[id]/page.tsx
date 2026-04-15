@@ -2,8 +2,10 @@
 import { useParams, useRouter } from 'next/navigation'
 import { REPORTS } from '@/lib/mockData'
 import { useState, useEffect } from 'react'
-import { Inbox, AlertTriangle, RefreshCw, ExternalLink } from 'lucide-react'
+import { Inbox, AlertTriangle, RefreshCw, ExternalLink, MessageSquare } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import CommentsPanel from '@/components/CommentsPanel'
+import { MOCK_COMMENTS } from '@/lib/mockData'
 import RapportSenODS from './RapportSenODS'
 import RapportRecouvrementDT from './RapportRecouvrementDT'
 import RapportCarteClients   from './RapportCarteClients'
@@ -141,8 +143,24 @@ function ErrorState({ title, url, onRetry }: { title: string; url: string; onRet
 export default function ViewerPage() {
   const { id }    = useParams<{ id: string }>()
   const router    = useRouter()
-  const [loaded, setLoaded] = useState(false)
-  const [error, setError]   = useState(false)
+  const [loaded,      setLoaded]      = useState(false)
+  const [error,       setError]       = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
 
   const report    = REPORTS.find(r => r.id === id)
   const path      = ID_TO_PATH[id] || '/'
@@ -188,7 +206,7 @@ export default function ViewerPage() {
           ← Retour
         </button>
 
-        {/* Statut + plein écran */}
+        {/* Statut + actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -203,14 +221,55 @@ export default function ViewerPage() {
             {status.label}
           </span>
 
-          <a href={iframeUrl} target="_blank" rel="noopener noreferrer"
-            title="Ouvrir en plein écran"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7, textDecoration: 'none', background: '#f4f6fb', border: '1px solid #e8edf5', fontSize: 10, fontWeight: 700, color: 'rgba(31,59,114,.45)', fontFamily: F_BODY, transition: 'all .15s' }}
-            onMouseEnter={e => { const a = e.currentTarget; a.style.background='#eef2ff'; a.style.color=C_NAVY; a.style.borderColor='#E0E7FF' }}
-            onMouseLeave={e => { const a = e.currentTarget; a.style.background='#f4f6fb'; a.style.color='rgba(31,59,114,.45)'; a.style.borderColor='#e8edf5' }}
-          ><ExternalLink size={11} />Plein écran</a>
+          {/* Bouton Commentaires */}
+          {(() => {
+            const commentCount = MOCK_COMMENTS.filter(c => c.reportId === id && !c.resolved).length
+            return (
+              <button
+                onClick={() => setShowComments(v => !v)}
+                title="Commentaires"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7,
+                  background: showComments ? '#1F3B72' : '#f4f6fb',
+                  border: `1px solid ${showComments ? '#1F3B72' : '#e8edf5'}`,
+                  fontSize: 10, fontWeight: 700,
+                  color: showComments ? '#fff' : 'rgba(31,59,114,.55)',
+                  fontFamily: F_BODY, cursor: 'pointer', transition: 'all .15s', position: 'relative',
+                }}
+                onMouseEnter={e => { if (!showComments) { e.currentTarget.style.background='#eef2ff'; e.currentTarget.style.color='#1F3B72'; e.currentTarget.style.borderColor='#c7d7f8' } }}
+                onMouseLeave={e => { if (!showComments) { e.currentTarget.style.background='#f4f6fb'; e.currentTarget.style.color='rgba(31,59,114,.55)'; e.currentTarget.style.borderColor='#e8edf5' } }}
+              >
+                <MessageSquare size={11} />
+                Commentaires
+                {commentCount > 0 && (
+                  <span style={{
+                    background: showComments ? 'rgba(255,255,255,.25)' : '#E84040',
+                    color: '#fff', borderRadius: 99, fontSize: 9, fontWeight: 800,
+                    padding: '0 5px', lineHeight: '14px', minWidth: 14, textAlign: 'center',
+                  }}>{commentCount}</span>
+                )}
+              </button>
+            )
+          })()}
+
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7, background: isFullscreen ? C_NAVY : '#f4f6fb', border: `1px solid ${isFullscreen ? C_NAVY : '#e8edf5'}`, fontSize: 10, fontWeight: 700, color: isFullscreen ? '#fff' : 'rgba(31,59,114,.45)', fontFamily: F_BODY, cursor: 'pointer', transition: 'all .15s' }}
+            onMouseEnter={e => { if (!isFullscreen) { e.currentTarget.style.background='#eef2ff'; e.currentTarget.style.color=C_NAVY; e.currentTarget.style.borderColor='#E0E7FF' } }}
+            onMouseLeave={e => { if (!isFullscreen) { e.currentTarget.style.background='#f4f6fb'; e.currentTarget.style.color='rgba(31,59,114,.45)'; e.currentTarget.style.borderColor='#e8edf5' } }}
+          ><ExternalLink size={11} />{isFullscreen ? 'Quitter' : 'Plein écran'}</button>
         </div>
       </div>
+
+      {/* ── Panneau commentaires ────────────────────────────────────────── */}
+      {showComments && report && (
+        <CommentsPanel
+          reportId={id}
+          reportTitle={report.title}
+          onClose={() => setShowComments(false)}
+        />
+      )}
 
       {/* ── Zone contenu ───────────────────────────────────────────────── */}
       {id === 'facturation' ? (
